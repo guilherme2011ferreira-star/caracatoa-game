@@ -4,7 +4,7 @@ Caracatoa é um MMORPG original em desenvolvimento: cliente 3D Defold, servidor 
 
 ## Baixar e abrir o jogo
 
-1. Baixe `Caracatoa-Playtest-Windows-HTML5-0.1.0.zip` na página [Releases](https://github.com/guilherme2011ferreira-star/caracatoa-game/releases/latest) e extraia a pasta inteira.
+1. Baixe [Caracatoa-Playtest-Windows-HTML5-0.1.0.zip](https://github.com/guilherme2011ferreira-star/caracatoa-game/releases/latest/download/Caracatoa-Playtest-Windows-HTML5-0.1.0.zip) na página [Releases](https://github.com/guilherme2011ferreira-star/caracatoa-game/releases/latest) e extraia a pasta inteira.
 2. Instale Node.js **24.22.1** (ou outra versão 24.x) em [nodejs.org](https://nodejs.org/).
 3. Dê duplo clique em `INICIAR-PREVIA.cmd`. A janela mostrará um endereço como `http://127.0.0.1:54321/`; abra-o no Edge ou Chrome **no mesmo computador**.
 4. Crie uma conta de teste na tela inicial. O formulário pede ID, senha de 8 a 11 caracteres, confirmação e PIN de 4 a 6 dígitos. Entre, crie um personagem e teste a praça.
