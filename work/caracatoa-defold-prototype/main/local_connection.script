@@ -1,0 +1,2246 @@
+local Protocol = require "main.wyd_protocol"
+local Session = require "main.wyd_session"
+local CaracatoaSkills = require "main.caracatoa_skills"
+local CaracatoaProgression = require "main.caracatoa_progression"
+local json = require "json"
+
+local SERVER_HOST = "127.0.0.1"
+local function loopback_port_from_environment(name, fallback)
+	local value = tonumber(os.getenv(name) or "")
+	if value and value == math.floor(value) and value >= 1 and value <= 65535 then
+		return value
+	end
+	return fallback
+end
+local SERVER_PORT = loopback_port_from_environment("CARACATOA_SERVER_PORT", 8289)
+local REGISTRATION_PORT = loopback_port_from_environment("CARACATOA_REGISTRATION_PORT", 8765)
+local REGISTRATION_URL = "http://127.0.0.1:" .. tostring(REGISTRATION_PORT) .. "/api/v1/player-registration"
+local CONNECT_TIMEOUT_SECONDS = 0.25
+local POLL_INTERVAL_SECONDS = 0.05
+local RECEIVE_CHUNK_BYTES = 4096
+local KEEPALIVE_INTERVAL_SECONDS = 20
+local MOVE_RESPONSE_TIMEOUT_SECONDS = 3
+local SKILL_RESPONSE_TIMEOUT_SECONDS = 3
+local ATTRIBUTE_RESPONSE_TIMEOUT_SECONDS = 3
+local SKILL_LEARN_RESPONSE_TIMEOUT_SECONDS = 3
+local EQUIPMENT_RESPONSE_TIMEOUT_SECONDS = 3
+local MOUNT_RESPONSE_TIMEOUT_SECONDS = 5
+local TRADE_RESPONSE_TIMEOUT_SECONDS = 5
+local SKILL_CARACATOA_CORTE_ID = 25
+local SKILL_DEFINITIONS = CaracatoaSkills.by_id
+local SESSION_TEST_CLASS_ID = tonumber(os.getenv("CARACATOA_SESSION_TEST_CLASS_ID") or "1") or 1
+local SESSION_TEST_SKILL_ID = tonumber(os.getenv("CARACATOA_SESSION_TEST_SKILL_ID") or "") or
+	(CaracatoaSkills.by_class[SESSION_TEST_CLASS_ID] or {})[1]
+local SESSION_TEST_ATTRIBUTE_ID = tonumber(os.getenv("CARACATOA_SESSION_TEST_ATTRIBUTE_ID") or "1") or 1
+local SESSION_TEST_ATTRIBUTE_STAT = ({ [0] = "str", [1] = "int", [2] = "dex", [3] = "con" })[SESSION_TEST_ATTRIBUTE_ID]
+local TEST_TRACE_PATH = os.getenv("CARACATOA_TEST_TRACE")
+local SESSION_TEST_MODE = os.getenv("CARACATOA_SESSION_TEST_MODE") == "1"
+local HUD_INPUT_TEST_MODE = SESSION_TEST_MODE and os.getenv("CARACATOA_HUD_INPUT_TEST") == "1"
+local HUD_ONBOARDING_TEST_MODE = os.getenv("CARACATOA_HUD_ONBOARDING_TEST") == "1"
+local HUD_REGISTRATION_TEST_MODE = HUD_ONBOARDING_TEST_MODE or os.getenv("CARACATOA_HUD_REGISTRATION_TEST") == "1"
+local SESSION_TEST_ITEMIZED_EQUIPMENT = os.getenv("CARACATOA_SESSION_TEST_ITEMIZED_EQUIPMENT") == "1"
+local SESSION_TEST_ITEMIZED_VITALS = os.getenv("CARACATOA_SESSION_TEST_ITEMIZED_VITALS") == "1"
+local SESSION_TEST_ACCOUNT = string.rep("A", 12)
+local SESSION_TEST_PASSWORD = string.rep("P", 9)
+local SESSION_TEST_PIN = string.rep("7", 6)
+local SESSION_TEST_TIMESTAMP = 0x01020304
+
+local function is_html5_runtime()
+	return type(html5) == "table" and type(html5.run) == "function"
+end
+
+local function binary_to_hex(value)
+	return (value:gsub(".", function(character)
+		return string.format("%02x", string.byte(character))
+	end))
+end
+
+local function hex_to_binary(value)
+	if type(value) ~= "string" or #value % 2 ~= 0 or value:find("[^0-9a-fA-F]") then return nil end
+	return (value:gsub("..", function(pair)
+		return string.char(tonumber(pair, 16))
+	end))
+end
+
+local function next_advancement_request_id(self)
+	local state = self.live_session
+	state.advancement_request_counter = ((state.advancement_request_counter or 0) + 1) % 4096
+	local sequence = state.advancement_request_counter
+	local now = os.time()
+	local client = state.mob_index or 1
+	local tail = (now * 4099 + sequence * 65537 + client) % 281474976710656
+	return string.format("%08x-%04x-4%03x-8%03x-%012x",
+		now % 4294967296, client % 65536, sequence, (now + sequence) % 4096, tail)
+end
+
+local function post_ui(message_id, payload)
+	msg.post("/hud#gui", message_id, payload or {})
+end
+
+local function update_selected_target(self, state)
+	local selected, selected_distance
+	for _, monster in pairs(state.world_monsters or {}) do
+		if monster.current_hp > 0 then
+			local distance = math.max(math.abs(monster.position.x - state.world_position.x), math.abs(monster.position.y - state.world_position.y))
+			if not selected or distance < selected_distance or (distance == selected_distance and monster.entity_id < selected.entity_id) then
+				selected = monster
+				selected_distance = distance
+			end
+		end
+	end
+	state.selected_target = selected
+	if selected then
+		post_ui("world_target_updated", {
+			entity_id = selected.entity_id,
+			name = selected.name,
+			current_hp = selected.current_hp,
+			max_hp = selected.max_hp,
+			class_id = state.class_id,
+		})
+		msg.post("/transknight#movement", "world_target_updated", {
+			x = selected.position.x,
+			y = selected.position.y,
+			current_hp = selected.current_hp,
+			visible = true,
+		})
+	else
+		post_ui("world_target_updated", { class_id = state.class_id })
+		msg.post("/transknight#movement", "world_target_updated", { visible = false })
+	end
+end
+
+local function report_status(message)
+	post_ui("server_status", { text = message })
+	print("[Caracatoa local server] " .. message)
+	if TEST_TRACE_PATH and TEST_TRACE_PATH ~= "" then
+		local trace = io.open(TEST_TRACE_PATH, "a")
+		if trace then
+			trace:write(message, "\n")
+			trace:close()
+		end
+	end
+end
+
+local function finish_registration(self, status, response_body, account_id)
+	self.registration_pending = false
+	if status == 201 then
+		post_ui("account_registration_result", { success = true, account_id = account_id })
+		return
+	end
+	local text = "Não foi possível criar a conta local."
+	if type(response_body) == "string" and response_body ~= "" then
+		local decoded_ok, decoded = pcall(json.decode, response_body)
+		if decoded_ok and type(decoded) == "table" and type(decoded.error) == "string" then
+			text = decoded.error
+		end
+	end
+	post_ui("account_registration_result", { success = false, text = text })
+end
+
+local function register_local_account(self, account_id, password, token)
+	if self.registration_pending then
+		post_ui("account_registration_result", { success = false, text = "Aguarde a resposta do cadastro atual." })
+		return
+	end
+	if type(account_id) ~= "string" or type(password) ~= "string" or type(token) ~= "string" then
+		post_ui("account_registration_result", { success = false, text = "Confira os dados da conta." })
+		return
+	end
+	self.registration_pending = true
+	local request_body = json.encode({ accountId = account_id, password = password, token = token })
+	local headers = { ["Content-Type"] = "application/json" }
+	if is_html5_runtime() then
+		self.registration_request_id = (self.registration_request_id or 0) + 1
+		self.registration_elapsed = 0
+		local origin_ok, origin = pcall(html5.run, "window.location.origin")
+		if origin_ok and type(origin) == "string" and origin:match("^https?://127%.0%.0%.1:%d+$") then
+			self.registration_account = account_id
+			local bridge_ok, bridge_result = pcall(html5.run,
+				"CaracatoaLocalBridge.registerHex('" .. binary_to_hex(request_body) .. "', " .. tostring(self.registration_request_id) .. ")")
+			request_body = nil
+			password = nil
+			token = nil
+			if bridge_ok and bridge_result == "true" then return end
+			self.registration_account = nil
+			self.registration_request_id = nil
+			self.registration_pending = false
+			post_ui("account_registration_result", { success = false, text = "Não foi possível enviar o cadastro pela prévia local." })
+			return
+		else
+			self.registration_request_id = nil
+			self.registration_pending = false
+			post_ui("account_registration_result", { success = false, text = "A prévia web precisa ser aberta pelo link local do Caracatoa." })
+			return
+		end
+	end
+	local ok = pcall(http.request, REGISTRATION_URL, "POST", function(_, _, response)
+		finish_registration(self, response and response.status or 0, response and response.response or "", account_id)
+	end, headers, request_body, { timeout = 10 })
+	request_body = nil
+	password = nil
+	token = nil
+	if not ok then
+		self.registration_pending = false
+		post_ui("account_registration_result", { success = false, text = "Não foi possível acessar o servidor local." })
+	end
+end
+
+local function close_socket(self)
+	if self.socket then
+		if self.browser_transport then
+			pcall(html5.run, "CaracatoaLocalBridge.close()")
+			self.browser_transport = nil
+		else
+			self.socket:close()
+		end
+		self.socket = nil
+	end
+end
+
+local function new_decoder()
+	return Protocol.new_stream_decoder()
+end
+
+local function send_wire(self, wire, label)
+	if not self.socket then
+		report_status("Conexão local fechada antes do envio de " .. label .. ".")
+		return false
+	end
+	if self.browser_transport then
+		local ok, result = pcall(html5.run, "CaracatoaLocalBridge.sendHex('" .. binary_to_hex(wire) .. "')")
+		if not ok or result ~= "true" then
+			report_status("Falha na ponte web local ao enviar pacote de " .. label .. ".")
+			close_socket(self)
+			return false
+		end
+		return true
+	end
+	local sent, send_error, partial = self.socket:send(wire)
+	if (sent or partial or 0) < #wire then
+		report_status("Falha ao enviar pacote local de " .. label .. ".")
+		if send_error then print("[Caracatoa local server] send error: " .. tostring(send_error)) end
+		close_socket(self)
+		return false
+	end
+	return true
+end
+
+local function send_session_body(self, body, sequence, label)
+	local encoded = Protocol.encode_frame(body, sequence)
+	body = nil
+	if not encoded.ok then
+		report_status("Codec recusou pacote local de " .. label .. ".")
+		close_socket(self)
+		return false
+	end
+	local wire = encoded.wire
+	encoded = nil
+	local sent = send_wire(self, wire, label)
+	wire = nil
+	return sent
+end
+
+local function send_next_session_body(self, body, label)
+	local state = self.session_test or self.live_session
+	if not state or not state.sequence_state then
+		report_status("Sequência de sessão local ainda não está pronta para " .. label .. ".")
+		close_socket(self)
+		return false
+	end
+	local encoded, encode_error = Session.encode_next_request(Protocol, body, state.sequence_state)
+	body = nil
+	if not encoded then
+		report_status("Sequência local recusou pacote de " .. label .. ".")
+		if encode_error then print("[Caracatoa local session] sequence error: " .. tostring(encode_error)) end
+		close_socket(self)
+		return false
+	end
+	local wire = encoded.wire
+	encoded = nil
+	local sent = send_wire(self, wire, label)
+	wire = nil
+	return sent
+end
+
+local function connect_local(self)
+	if self.socket then return true end
+	local decoder, decoder_error = new_decoder()
+	if not decoder then
+		report_status("Codec de rede local indisponível.")
+		if decoder_error then print("[Caracatoa local server] decoder error: " .. tostring(decoder_error)) end
+		return false
+	end
+	if is_html5_runtime() then
+		local ok, result = pcall(html5.run, "CaracatoaLocalBridge.connect()")
+		if not ok or result ~= "true" then
+			report_status("Falha ao iniciar a conexão web local do Caracatoa.")
+			return false
+		end
+		self.socket = true
+		self.browser_transport = true
+		self.decoder = decoder
+		if not send_wire(self, Protocol.client_handshake(), "handshake web local") then return false end
+		report_status("Ponte WebSocket local iniciada; conectando ao servidor Caracatoa temporário.")
+		return true
+	end
+	local client, create_error = socket.tcp()
+	if not client then
+		report_status("Falha ao criar conexão TCP local.")
+		if create_error then print("[Caracatoa local server] socket error: " .. tostring(create_error)) end
+		return false
+	end
+	client:settimeout(CONNECT_TIMEOUT_SECONDS)
+	local connected, connect_error = client:connect(SERVER_HOST, SERVER_PORT)
+	if connected ~= 1 then
+		client:close()
+		report_status("Servidor Caracatoa local indisponível em 127.0.0.1:" .. tostring(SERVER_PORT) .. ".")
+		if connect_error then print("[Caracatoa local server] connect error: " .. tostring(connect_error)) end
+		return false
+	end
+	local handshake = Protocol.client_handshake()
+	local sent, send_error, partial = client:send(handshake)
+	if (sent or partial or 0) < #handshake then
+		client:close()
+		report_status("Conexão local abriu, mas o handshake falhou.")
+		if send_error then print("[Caracatoa local server] handshake error: " .. tostring(send_error)) end
+		return false
+	end
+	client:settimeout(0)
+	self.socket = client
+	self.decoder = decoder
+	report_status("TCP local conectado; handshake enviado somente a 127.0.0.1:" .. tostring(SERVER_PORT) .. ".")
+	return true
+end
+
+local function fail_session_test(self, message)
+	report_status("SESSION_TEST_FAIL: " .. message)
+	self.session_test.phase = "failed"
+	close_socket(self)
+	return false
+end
+
+local function begin_test_movement(self, state)
+	local movement = Session.build_move_body({
+		mob_index = state.mob_index,
+		position = state.world_position,
+		direction_code = 0x36,
+		timestamp = SESSION_TEST_TIMESTAMP,
+	})
+	state.phase = "await-move"
+	if not send_next_session_body(self, movement, "movimento sintético") then
+		return fail_session_test(self, "não foi possível enviar movimento sintético")
+	end
+	report_status("SESSION_TEST_MOVE_SENT")
+	return true
+end
+
+local function begin_test_impacto_cast(self, state)
+	local target = state.selected_target
+	if not target or target.entity_id ~= 0x4568 or target.current_hp <= 0 then
+		return fail_session_test(self, "segundo alvo sintético não está vivo e selecionado")
+	end
+	local skill = Session.build_single_target_skill_attack_body({
+		client_id = state.mob_index,
+		timestamp = SESSION_TEST_TIMESTAMP,
+		skill_id = 26,
+		target_mob_index = target.entity_id,
+		source_position = state.world_position,
+		target_position = target.position,
+	})
+	state.phase = "await-impacto-mana"
+	if not send_next_session_body(self, skill, "Impacto Celeste sintético") then
+		return fail_session_test(self, "não foi possível enviar Impacto Celeste")
+	end
+	report_status("SESSION_TEST_SKILL_CHAIN_CAST_SENT")
+	return true
+end
+
+local function maybe_begin_test_skill_learning(self, state)
+	if not state.attribute_allocation_confirmed or not state.skill_snapshot_received then
+		return true
+	end
+	if not SESSION_TEST_SKILL_ID then return fail_session_test(self, "classe sintética sem habilidade inicial") end
+	local request = Session.build_skill_learn_body({
+		client_id = state.mob_index,
+		timestamp = SESSION_TEST_TIMESTAMP,
+		skill_id = SESSION_TEST_SKILL_ID,
+	})
+	state.phase = "await-skill-learn"
+	if not send_next_session_body(self, request, "aprendizado sintético") then
+		return fail_session_test(self, "não foi possível enviar o aprendizado sintético")
+	end
+	report_status("SESSION_TEST_SKILL_LEARN_SENT")
+	return true
+end
+
+local function fail_live_session(self, text, screen)
+	if self.live_session and self.live_session.phase == "in-world" then
+		msg.post("/transknight#movement", "world_reset")
+	end
+	close_socket(self)
+	self.live_session = nil
+	post_ui("session_error", { text = text, screen = screen or "login" })
+	report_status(text)
+	return false
+end
+
+local function valid_account(account_id, password)
+	return Session.is_valid_account_id(account_id) and Session.is_valid_login_password(password)
+end
+
+local function send_live_roster(self, roster)
+	local state = self.live_session
+	if state.phase == "await-created-roster" then
+		local created = roster.selection[state.selected_slot + 1]
+		if not created or created.name ~= state.selected_name or created.class_id ~= state.selected_class then
+			return fail_live_session(self, "A lista local não confirmou a personagem recém-criada.", "create")
+		end
+	end
+	local payload = {}
+	for index, character in ipairs(roster.selection) do
+		payload["slot" .. index .. "_name"] = character.name
+		payload["slot" .. index .. "_class"] = character.class_id or 0
+		payload["slot" .. index .. "_level"] = character.level or 0
+	end
+	self.live_session.roster = roster.selection
+	self.live_session.phase = "character-select"
+	post_ui("session_roster", payload)
+	report_status("LOCAL_CHARACTER_ROSTER_READY")
+	return true
+end
+
+local function handle_live_session_frame(self, body)
+	local state = self.live_session
+	if not state or type(body) ~= "string" or #body < 2 then
+		return fail_live_session(self, "Resposta incompleta do servidor Caracatoa local.")
+	end
+	local opcode = string.byte(body, 1) + string.byte(body, 2) * 256
+
+	if state.phase == "await-login" then
+		if opcode == 0x105 then
+			return fail_live_session(self, "ID ou senha não aceitos pelo servidor local.")
+		end
+		local login, parse_error = Session.parse_login_success(body)
+		if not login or login.client_id == 0 then
+			return fail_live_session(self, "Resposta de login local inválida.")
+		end
+		local sequence_state = Session.new_request_sequence_state(login.hash_key_table)
+		if not sequence_state then
+			return fail_live_session(self, "Sequência de sessão local inválida.")
+		end
+		state.client_id = login.client_id
+		state.sequence_state = sequence_state
+		state.phase = "await-pin"
+		post_ui("session_pin_required")
+		report_status("LOCAL_ACCOUNT_ACCEPTED_PIN_REQUIRED")
+		return true
+	end
+
+	if state.phase == "await-token" then
+		local token = Session.parse_token_result(body)
+		if not token then return fail_live_session(self, "Resposta da senha numérica inválida.", "pin") end
+		if not token.accepted then return fail_live_session(self, "Senha numérica não aceita pelo servidor local.", "login") end
+		state.phase = "await-roster"
+		report_status("LOCAL_PIN_ACCEPTED")
+		return true
+	end
+
+	if (state.phase == "await-roster" or state.phase == "await-created-roster") and opcode == 0x110 then
+		local roster = Session.parse_character_roster(body)
+		if not roster then return fail_live_session(self, "Lista de personagens local inválida.", "login") end
+		return send_live_roster(self, roster)
+	end
+
+	if state.phase == "await-create-result" and opcode == 0x7f01 then
+		local created = Session.parse_character_create_result(body)
+		if not created then return fail_live_session(self, "Resposta de criação local inválida.", "create") end
+		if created.status ~= 0 or created.slot ~= state.selected_slot or created.class_id ~= state.selected_class then
+			state.phase = "character-select"
+			post_ui("session_create_error", { text = "O servidor local recusou a criação da personagem." })
+			return true
+		end
+		state.phase = "await-created-roster"
+		post_ui("character_created")
+		report_status("LOCAL_CHARACTER_CREATED")
+		return true
+	end
+
+	if state.phase == "await-world" and opcode == 0x114 then
+		local world = Session.parse_character_world(body)
+		if not world or world.name ~= state.selected_name or world.class_id ~= state.selected_class then
+			return fail_live_session(self, "Estado da personagem divergente na entrada do mundo.", "roster")
+		end
+		state.phase = "in-world"
+		state.keepalive_elapsed = 0
+		state.mob_index = world.mob_index
+		state.world_position = world.position
+		state.class_id = world.class_id
+		state.level = world.level
+		state.experience = world.experience
+		state.move_pending = false
+		state.move_elapsed = 0
+		state.world_monsters = {}
+		state.skill_pending = false
+		state.skill_cooldown_remaining = {}
+		state.skill_learning_pending = false
+		state.learned_skills = {}
+		state.available_skill_points = 0
+		state.attribute_pending = false
+		state.equipment = {}
+		state.equipment_pending = false
+		state.equipment_snapshot_slots = {}
+		state.equipment_snapshot_complete = false
+		state.inventory_items = world.inventory_items
+		state.itemization_details = {}
+		state.mounts = {}
+		state.trade = nil
+		state.trade_pending = false
+		state.trade_inventory_refresh_remaining = nil
+		state.shop_pending = false
+		state.shop_pending_elapsed = 0
+		state.shop_inventory_refresh_remaining = nil
+		state.shop_request_counter = 0
+		state.mount_pending = false
+		state.pending_mount_action = nil
+		state.stage_pending = false
+		state.refinement_pending = false
+		post_ui("world_ready", {
+			name = world.name,
+			class_id = world.class_id,
+			level = world.level,
+			experience = world.experience,
+			x = world.position.x,
+			y = world.position.y,
+			mob_index = world.mob_index,
+		})
+		for slot = 0, 59 do
+			local item = state.inventory_items[slot]
+			if item then
+				post_ui("world_inventory_updated", {
+					slot = slot,
+					client_item_id = item.client_item_id,
+					stack_count = item.stack_count,
+				})
+			end
+		end
+		post_ui("world_inventory_snapshot_complete")
+		report_status("LOCAL_WORLD_ENTRY_CONFIRMED")
+		return true
+	end
+
+	if state.phase == "in-world" then
+		if opcode == 0x7f23 then
+			local shop_state, parse_error = Session.parse_player_shop_state(body)
+			if not shop_state or shop_state.client_id ~= state.mob_index then
+				return fail_live_session(self, parse_error or "Estado do mercado não corresponde à personagem.", "world")
+			end
+			state.shop_pending = false
+			state.shop_pending_elapsed = 0
+			if shop_state.gold_balance ~= nil then state.gold = shop_state.gold_balance end
+			if shop_state.receipt then
+				state.inventory_items = {}
+				state.itemization_details = {}
+				state.shop_inventory_refresh_remaining = 60
+				post_ui("world_inventory_reset")
+			end
+			post_ui("world_shop_updated", { state_json = json.encode(shop_state) })
+			if shop_state.status == "ok" and shop_state.receipt then report_status("LOCAL_PLAYER_SHOP_PURCHASED") end
+			return true
+		elseif opcode == 0x7f21 then
+			local trade_state, parse_error = Session.parse_trade_state(body)
+			if not trade_state or trade_state.client_id ~= state.mob_index then
+				return fail_live_session(self, parse_error or "Estado de troca não corresponde à personagem.", "world")
+			end
+			state.trade = trade_state.trade
+			state.trade_pending = false
+			state.trade_pending_elapsed = 0
+			if trade_state.status == "committed" then
+				state.inventory_items = {}
+				state.itemization_details = {}
+				state.trade_inventory_refresh_remaining = 60
+				post_ui("world_inventory_reset")
+			end
+			post_ui("world_trade_updated", { state_json = json.encode(trade_state) })
+			if trade_state.status == "committed" then report_status("LOCAL_TRADE_COMMITTED") end
+			return true
+		elseif opcode == 0x7f13 then
+			local stage, parse_error = Session.parse_stage_state(body)
+			if not stage or stage.client_id ~= state.mob_index then
+				return fail_live_session(self, parse_error or "Estágio não corresponde à personagem.", "world")
+			end
+			state.stage_state = stage
+			state.stage_pending = false
+			post_ui("world_stage_updated", {
+				stage = stage.stage,
+				stage_id = stage.stage_id,
+				stage_level = stage.stage_level,
+				total_level = stage.total_level,
+				experience = stage.experience,
+				available_attribute_points = stage.available_attribute_points,
+				available_skill_points = stage.available_skill_points,
+				required_material_client_item_id = stage.required_material_client_item_id,
+				status = stage.status,
+				reason = stage.reason,
+			})
+			if stage.status == 1 then report_status("LOCAL_STAGE_RITUAL_CONFIRMED") end
+		elseif opcode == 0x7f11 then
+			local result, parse_error = Session.parse_refinement_result(body)
+			if not result or result.client_id ~= state.mob_index then
+				return fail_live_session(self, parse_error or "Refino não corresponde à personagem.", "world")
+			end
+			state.refinement_pending = false
+			post_ui("world_refinement_updated", {
+				status = result.status,
+				reason = result.reason,
+				slot = result.slot,
+				old_level = result.old_level,
+				target_level = result.target_level,
+				new_level = result.new_level,
+				success = result.success,
+				chance_bps = result.chance_bps,
+				material_client_item_id = result.material_client_item_id,
+				divine_dust_used = result.divine_dust_used,
+			})
+			if result.status <= 1 then report_status("LOCAL_REFINEMENT_CONFIRMED") end
+		elseif opcode == 0x7f0d then
+			local mounts, parse_error = Session.parse_mount_state(body)
+			if not mounts or mounts.client_id ~= state.mob_index then
+				return fail_live_session(self, parse_error or "Montarias não correspondem à personagem.", "world")
+			end
+			local completed = false
+			if state.mount_pending and mounts.action_id == state.pending_mount_action then
+				state.mount_pending = false
+				state.pending_mount_action = nil
+				completed = true
+			end
+			state.mounts = mounts.mounts
+			post_ui("world_mounts_updated", { state_json = json.encode(mounts), completed = completed })
+			if mounts.status == 1 then report_status("LOCAL_MOUNT_ACTION_CONFIRMED") end
+		elseif opcode == 0x7f02 then
+			local progression, parse_error = Session.parse_progression_sync(body)
+			if not progression or progression.client_id ~= state.mob_index then
+				return fail_live_session(self, parse_error or "Progressão não corresponde à personagem.", "world")
+			end
+			state.level = progression.level
+			state.experience = progression.experience
+			state.current_hp = progression.current_hp
+			state.current_mp = progression.current_mp
+			post_ui("world_progression_updated", {
+				level = progression.level,
+				experience = progression.experience,
+				x = state.world_position.x,
+				y = state.world_position.y,
+			})
+			post_ui("world_resources_updated", {
+				current_hp = progression.current_hp,
+				current_mp = progression.current_mp,
+			})
+			report_status("LOCAL_CHARACTER_LEVEL_CONFIRMED")
+		elseif opcode == 0x7f04 then
+			local attributes, parse_error = Session.parse_attribute_sync(body)
+			if not attributes or attributes.client_id ~= state.mob_index then
+				return fail_live_session(self, parse_error or "Ficha de atributos não corresponde à personagem.", "world")
+			end
+			if attributes.status ~= 3 then
+				if not state.attribute_pending or attributes.attribute_id ~= state.pending_attribute_id then
+					return fail_live_session(self, "Resposta de distribuição sem pedido correspondente.", "world")
+				end
+				state.attribute_pending = false
+				state.pending_attribute_id = nil
+			end
+			state.attributes = attributes
+			post_ui("world_attributes_updated", {
+				status = attributes.status,
+				attribute_id = attributes.attribute_id,
+				available_points = attributes.available_points,
+				str = attributes.str,
+				int = attributes.int,
+				dex = attributes.dex,
+				con = attributes.con,
+				current_hp = attributes.current_hp,
+				max_hp = attributes.max_hp,
+				current_mp = attributes.current_mp,
+				max_mp = attributes.max_mp,
+				damage = attributes.damage,
+				defense = attributes.defense,
+			})
+			if attributes.status == 0 then report_status("LOCAL_ATTRIBUTE_POINT_CONFIRMED") end
+		elseif opcode == 0x7f06 then
+			local skill_state, parse_error = Session.parse_skill_state(body)
+			if not skill_state or skill_state.client_id ~= state.mob_index then
+				return fail_live_session(self, parse_error or "Ficha de habilidades não corresponde à personagem.", "world")
+			end
+			if skill_state.status ~= 0 then
+				if not state.skill_learning_pending or skill_state.skill_id ~= state.pending_skill_id then
+					return fail_live_session(self, "Resultado de aprendizado sem pedido correspondente.", "world")
+				end
+				state.skill_learning_pending = false
+				state.pending_skill_id = nil
+			end
+			state.available_skill_points = skill_state.available_points
+			state.learned_skills = skill_state.learned_skills
+			local ui_state = {
+				status = skill_state.status,
+				skill_id = skill_state.skill_id,
+				skill_points = skill_state.available_points,
+			}
+			for learned_skill_id, _ in pairs(SKILL_DEFINITIONS) do
+				ui_state["learned_" .. learned_skill_id] = skill_state.learned_skills[learned_skill_id] == true
+			end
+			post_ui("world_skill_state_updated", ui_state)
+			if skill_state.status == 1 then report_status("LOCAL_SKILL_LEARNED_CONFIRMED") end
+		elseif opcode == 0x7f08 then
+			local equipment, parse_error = Session.parse_equipment_state(body)
+			if not equipment or equipment.client_id ~= state.mob_index then
+				return fail_live_session(self, parse_error or "Equipamento não corresponde à personagem.", "world")
+			end
+			if equipment.status ~= 2 then
+				if not state.equipment_pending or equipment.equipment_slot ~= state.pending_equipment_slot then
+					return fail_live_session(self, "Resposta de equipamento sem pedido correspondente.", "world")
+				end
+				state.equipment_pending = false
+				state.pending_equipment_slot = nil
+			end
+			if equipment.status == 2 then
+				state.equipment_snapshot_slots[equipment.equipment_slot] = true
+				local snapshot_count = 0
+				for _, received in pairs(state.equipment_snapshot_slots) do
+					if received then snapshot_count = snapshot_count + 1 end
+				end
+				state.equipment_snapshot_complete = snapshot_count == 6
+			end
+			state.equipment = state.equipment or {}
+			if equipment.client_item_id == 0 then
+				state.equipment[equipment.equipment_slot] = nil
+			else
+				state.equipment[equipment.equipment_slot] = {
+					inventory_slot = equipment.inventory_slot,
+					client_item_id = equipment.client_item_id,
+					attack_bonus = equipment.attack_bonus,
+					defense_bonus = equipment.defense_bonus,
+				}
+			end
+			post_ui("world_equipment_updated", {
+				status = equipment.status,
+				equipment_slot = equipment.equipment_slot,
+				inventory_slot = equipment.inventory_slot,
+				client_item_id = equipment.client_item_id,
+				attack_bonus = equipment.attack_bonus,
+				defense_bonus = equipment.defense_bonus,
+				total_attack_bonus = equipment.total_attack_bonus,
+				total_defense_bonus = equipment.total_defense_bonus,
+				snapshot_complete = state.equipment_snapshot_complete,
+			})
+		elseif opcode == 0x7f0a then
+			local detail, parse_error = Session.parse_itemization_detail(body)
+			if not detail or detail.client_id ~= state.mob_index then
+				return fail_live_session(self, parse_error or "Detalhes de item não correspondem à personagem.", "world")
+			end
+			state.itemization_details = state.itemization_details or {}
+			if detail.status == 2 then
+				state.itemization_details[detail.slot] = nil
+			else
+				local item = state.inventory_items and state.inventory_items[detail.slot]
+				if not item or item.client_item_id ~= detail.client_item_id then
+					return fail_live_session(self, "Detalhes de item não correspondem ao slot do inventário.", "world")
+				end
+				state.itemization_details[detail.slot] = detail
+			end
+			local ui_detail = {
+				slot = detail.slot,
+				status = detail.status,
+				rarity_id = detail.rarity_id,
+				client_item_id = detail.client_item_id,
+				item_level = detail.item_level,
+				refinement_level = detail.refinement_level,
+				physical_damage = detail.base_stats.physical_damage,
+				magic_attack = detail.base_stats.magic_attack,
+				physical_defense = detail.base_stats.physical_defense,
+				max_hp = detail.base_stats.max_hp,
+				max_mp = detail.base_stats.max_mp,
+				affix_count = #detail.affixes,
+			}
+			for index = 1, 4 do
+				local affix = detail.affixes[index]
+				ui_detail["affix_" .. index .. "_id"] = affix and affix.client_affix_id or 0
+				ui_detail["affix_" .. index .. "_value"] = affix and affix.value or 0
+			end
+			post_ui("world_itemization_updated", ui_detail)
+		elseif opcode == 0x182 then
+			local delta, parse_error = Session.parse_inventory_slot_delta(body)
+			if not delta or delta.client_id ~= state.mob_index then
+				return fail_live_session(self, parse_error or "Atualização de inventário não corresponde à personagem.", "world")
+			end
+			state.inventory_items = state.inventory_items or {}
+			state.inventory_items[delta.slot] = delta.item
+			post_ui("world_inventory_updated", {
+				slot = delta.slot,
+				client_item_id = delta.client_item_id,
+				stack_count = delta.stack_count,
+			})
+			if state.trade_inventory_refresh_remaining then
+				state.trade_inventory_refresh_remaining = state.trade_inventory_refresh_remaining - 1
+				if state.trade_inventory_refresh_remaining <= 0 then
+					state.trade_inventory_refresh_remaining = nil
+					post_ui("world_inventory_snapshot_complete")
+				end
+			end
+			if state.shop_inventory_refresh_remaining then
+				state.shop_inventory_refresh_remaining = state.shop_inventory_refresh_remaining - 1
+				if state.shop_inventory_refresh_remaining <= 0 then
+					state.shop_inventory_refresh_remaining = nil
+					post_ui("world_inventory_snapshot_complete")
+				end
+			end
+		elseif opcode == 0x366 then
+			local movement, parse_error = Session.parse_move_response(body)
+			if not movement then
+				return fail_live_session(self, parse_error or "Resposta de movimento inválida.", "world")
+			end
+			if movement.client_id ~= state.mob_index then
+				local monster = state.world_monsters[movement.client_id]
+				if monster then
+					monster.position = movement.destination
+					update_selected_target(self, state)
+					report_status("LOCAL_WORLD_MONSTER_MOVED:" .. tostring(monster.entity_id))
+				end
+				return true
+			end
+			state.world_position = movement.destination
+			state.move_pending = false
+			state.move_elapsed = 0
+			msg.post("/transknight#movement", "world_move_confirmed", {
+				x = movement.destination.x,
+				y = movement.destination.y,
+			})
+			post_ui("world_position", {
+				x = movement.destination.x,
+				y = movement.destination.y,
+				level = state.level,
+			})
+			update_selected_target(self, state)
+			report_status("LOCAL_WORLD_MOVE_CONFIRMED")
+		elseif opcode == 0x364 then
+			local monster, parse_error = Session.parse_monster_spawn(body)
+			if not monster then return fail_live_session(self, parse_error or "Pacote de criatura local inválido.", "world") end
+			state.world_monsters[monster.entity_id] = monster
+			update_selected_target(self, state)
+		elseif opcode == 0x181 then
+			local resources, parse_error = Session.parse_hp_mp_sync(body)
+			if not resources or resources.client_id ~= state.mob_index then
+				return fail_live_session(self, parse_error or "Sincronização de recursos não corresponde ao personagem.", "world")
+			end
+			state.current_hp = resources.current_hp
+			state.current_mp = resources.current_mp
+			post_ui("world_resources_updated", { current_hp = resources.current_hp, current_mp = resources.current_mp })
+		elseif opcode == 0x39d then
+			local result, parse_error = Session.parse_skill_attack_result(body)
+			local skill = result and SKILL_DEFINITIONS[result.skill_id]
+			if not result or not skill or not state.skill_pending or result.skill_id ~= state.pending_skill_id or result.target_mob_index ~= state.pending_skill_target then
+				return fail_live_session(self, parse_error or "Resultado de habilidade local não corresponde ao pedido.", "world")
+			end
+			local target = state.world_monsters[result.target_mob_index]
+			if target then target.current_hp = math.max(0, target.current_hp - result.damage) end
+			if target and target.position then
+				msg.post("/transknight#movement", "world_attack_confirmed", {
+					target_x = target.position.x,
+					target_y = target.position.y,
+				})
+			end
+			state.skill_pending = false
+			state.pending_skill_id = nil
+			state.pending_skill_target = nil
+			post_ui("world_skill_result", {
+				skill_name = skill.name,
+				damage = result.damage,
+				target_id = result.target_mob_index,
+				target_hp = target and target.current_hp or 0,
+				current_mp = state.current_mp,
+			})
+			update_selected_target(self, state)
+			report_status("LOCAL_SKILL_CAST_CONFIRMED")
+		elseif opcode == 0x7f09 then
+			local result, parse_error = Session.parse_caracatoa_skill_effect_result(body)
+			local skill = result and SKILL_DEFINITIONS[result.skill_id]
+			local expected_effect_type = skill and (skill.effect_type == "heal" and 1 or skill.effect_type == "defense" and 2 or nil)
+			if not result or not skill or expected_effect_type ~= result.effect_type or not state.skill_pending or
+				result.client_id ~= state.mob_index or result.skill_id ~= state.pending_skill_id or
+				state.pending_skill_target ~= state.mob_index then
+				return fail_live_session(self, parse_error or "Resultado de efeito não corresponde ao pedido.", "world")
+			end
+			state.skill_pending = false
+			state.pending_skill_id = nil
+			state.pending_skill_target = nil
+			if result.status ~= 0 then
+				state.skill_cooldown_remaining[result.skill_id] = 0
+				local reason = result.effect_type == 2 and ({ [2] = "Mana insuficiente.", [3] = "Personagem derrotado." })[result.status] or ({ [1] = "A vida já está cheia.", [2] = "Mana insuficiente.", [3] = "Personagem derrotado." })[result.status] or "Cura recusada."
+				state.current_hp = result.current_hp
+				state.current_mp = result.current_mp
+				post_ui("world_resources_updated", { current_hp = result.current_hp, max_hp = result.max_hp, current_mp = result.current_mp })
+				post_ui("world_skill_rejected", { text = reason })
+				return true
+			end
+			state.current_hp = result.current_hp
+			state.current_mp = result.current_mp
+			state.skill_cooldown_remaining[result.skill_id] = skill.cooldown
+			post_ui("world_resources_updated", { current_hp = result.current_hp, max_hp = result.max_hp, current_mp = result.current_mp })
+			if result.effect_type == 1 then
+				post_ui("world_skill_result", {
+					skill_name = skill.name,
+					effect_type = "heal",
+					healed = result.healed,
+					current_hp = result.current_hp,
+					max_hp = result.max_hp,
+					current_mp = result.current_mp,
+				})
+				report_status("LOCAL_SKILL_HEAL_CONFIRMED")
+			else
+				post_ui("world_skill_result", {
+					skill_name = skill.name,
+					effect_type = "defense",
+					defense_bonus = result.defense_bonus,
+					duration_ms = result.duration_ms,
+					current_hp = result.current_hp,
+					max_hp = result.max_hp,
+					current_mp = result.current_mp,
+				})
+				report_status("LOCAL_SKILL_DEFENSE_CONFIRMED")
+			end
+		end
+		return true
+	end
+
+	return fail_live_session(self, "Ordem de respostas da sessão Caracatoa local inesperada.", "login")
+end
+
+local function handle_session_test_frame(self, body)
+	if type(body) ~= "string" or #body < 2 then
+		return fail_session_test(self, "frame de sessão sem opcode")
+	end
+	local opcode = string.byte(body, 1) + string.byte(body, 2) * 256
+	local state = self.session_test
+	if state.phase == "await-attribute-snapshot" and opcode == 0x7f02 then
+		local progression, parse_error = Session.parse_progression_sync(body)
+		if not progression or progression.client_id ~= state.mob_index or progression.level ~= 1 or
+			progression.experience ~= 0 then
+			return fail_session_test(self, parse_error or "snapshot inicial de progressão divergente")
+		end
+		state.level = progression.level
+		state.experience = progression.experience
+		state.initial_progression_received = true
+		report_status("SESSION_TEST_INITIAL_PROGRESSION_PASS")
+		return true
+	end
+	if opcode == 0x7f0d then
+		local mounts, parse_error = Session.parse_mount_state(body)
+		local tutorial_egg = mounts and mounts.mounts[1]
+		if not mounts or mounts.client_id ~= state.mob_index or mounts.status ~= 0 or
+			mounts.action_id ~= 0 or mounts.count ~= 1 or not tutorial_egg or
+			tutorial_egg.stage ~= "egg" or tutorial_egg.active or tutorial_egg.riding then
+			return fail_session_test(self, parse_error or "ovo tutorial da montaria ausente ou inválido")
+		end
+		state.mount_snapshot_received = true
+		report_status("SESSION_TEST_MOUNT_SNAPSHOT_PASS")
+		return true
+	end
+	if opcode == 0x7f13 then
+		local stage, parse_error = Session.parse_stage_state(body)
+		if not stage or stage.client_id ~= state.mob_index or stage.status ~= 0 or
+			stage.stage ~= "Mortal" or stage.stage_level ~= 1 then
+			return fail_session_test(self, parse_error or "estado inicial de progressão inválido")
+		end
+		state.stage_snapshot_received = true
+		report_status("SESSION_TEST_STAGE_SNAPSHOT_PASS")
+		return true
+	end
+	if opcode == 0x7f04 and (SESSION_TEST_ITEMIZED_EQUIPMENT or SESSION_TEST_ITEMIZED_VITALS) and
+		state.phase ~= "await-attribute-snapshot" and
+		state.phase ~= "await-attribute-allocation" and
+		state.phase ~= "await-chain-attribute-snapshot" then
+		local attributes, parse_error = Session.parse_attribute_sync(body)
+		if not attributes or attributes.client_id ~= state.mob_index or attributes.status ~= 3 then
+			return fail_session_test(self, parse_error or "snapshot de atributos do equipamento itemizado inválido")
+		end
+		if not state.allocated_max_hp or not state.allocated_max_mp then
+			return fail_session_test(self, "snapshot de equipamento chegou antes da alocação de atributo")
+		end
+		local expected_hp = state.allocated_max_hp + (SESSION_TEST_ITEMIZED_VITALS and 11 or 1)
+		local expected_mp = state.allocated_max_mp + (SESSION_TEST_ITEMIZED_VITALS and 8 or 0)
+		if attributes.max_hp ~= expected_hp or attributes.max_mp ~= expected_mp then
+			return fail_session_test(self, string.format(
+				"atributos derivados do equipamento itemizado divergiram: HP=%d/%d MP=%d/%d",
+				attributes.max_hp, expected_hp, attributes.max_mp, expected_mp))
+		end
+		state.itemized_resource_sync_received = true
+		report_status(SESSION_TEST_ITEMIZED_VITALS and
+			"SESSION_TEST_ITEMIZED_RESOURCE_PASS" or "SESSION_TEST_ITEMIZED_EQUIPMENT_RESOURCE_PASS")
+		return true
+	end
+	if opcode == 0x105 then return fail_session_test(self, "servidor Caracatoa recusou login sintético") end
+	if opcode == 0x7f0a then
+		local itemization, parse_error = Session.parse_itemization_detail(body)
+		if not itemization or itemization.client_id ~= state.mob_index or itemization.status ~= 0 then
+			return fail_session_test(self, parse_error or "snapshot itemizado sintético divergente")
+		end
+		state.itemization_snapshots = state.itemization_snapshots or {}
+		state.itemization_snapshots[itemization.slot] = itemization
+		if SESSION_TEST_ITEMIZED_EQUIPMENT then
+			local weapon = state.itemization_snapshots[0]
+			local armor = state.itemization_snapshots[1]
+			if weapon and armor then
+				if weapon.client_item_id ~= 8001 or weapon.rarity_id ~= 2 or weapon.item_level ~= 1 or
+					weapon.base_stats.physical_damage ~= 1 or #weapon.affixes ~= 1 or
+					weapon.affixes[1].client_affix_id ~= 1 or weapon.affixes[1].value ~= 2 or
+					armor.client_item_id ~= 8006 or armor.rarity_id ~= 2 or armor.item_level ~= 1 or
+					armor.base_stats.physical_defense ~= 1 or
+					#armor.affixes ~= (SESSION_TEST_ITEMIZED_VITALS and 2 or 1) or
+					((SESSION_TEST_ITEMIZED_VITALS and
+						(armor.affixes[1].client_affix_id ~= 10 or armor.affixes[1].value ~= 10 or
+						armor.affixes[2].client_affix_id ~= 11 or armor.affixes[2].value ~= 8)) or
+						(not SESSION_TEST_ITEMIZED_VITALS and
+						(armor.affixes[1].client_affix_id ~= 8 or armor.affixes[1].value ~= 3))) then
+					return fail_session_test(self, "stats/afixos do equipamento itemizado divergiram")
+				end
+				report_status("SESSION_TEST_ITEMIZATION_PASS")
+			end
+		end
+		return true
+	end
+	if opcode == 0x7f08 then
+		local equipment, parse_error = Session.parse_equipment_state(body)
+		if not equipment or equipment.client_id ~= state.mob_index then
+			return fail_session_test(self, parse_error or "estado de equipamento sintético divergente")
+		end
+		if equipment.status == 2 then
+			if equipment.equipment_slot == 0 and not state.equipment_change_sent then
+				if equipment.inventory_slot ~= 0xff or equipment.client_item_id ~= 0 then
+					return fail_session_test(self, "arma inicial já equipada antes da ação do jogador")
+				end
+				local request = Session.build_equipment_change_body({
+					client_id = state.mob_index,
+					equipment_slot = 0,
+					inventory_slot = 0,
+					timestamp = SESSION_TEST_TIMESTAMP,
+				})
+				state.equipment_change_sent = true
+				if not send_next_session_body(self, request, "equipamento sintético") then
+					return fail_session_test(self, "não foi possível enviar a troca de equipamento")
+				end
+				report_status("SESSION_TEST_EQUIPMENT_SENT")
+			end
+			return true
+		end
+		if equipment.status ~= 0 then
+			return fail_session_test(self, "servidor recusou equipamento sintético")
+		end
+		if equipment.equipment_slot == 0 then
+			local expected_item_id = SESSION_TEST_ITEMIZED_EQUIPMENT and 8001 or 7001
+			local expected_attack_bonus = SESSION_TEST_ITEMIZED_EQUIPMENT and 3 or 5
+			if equipment.inventory_slot ~= 0 or equipment.client_item_id ~= expected_item_id or
+				equipment.attack_bonus ~= expected_attack_bonus or equipment.total_attack_bonus ~= expected_attack_bonus then
+				return fail_session_test(self, "servidor não confirmou a arma itemizada")
+			end
+			state.equipment_confirmed = true
+			local request = Session.build_equipment_change_body({
+				client_id = state.mob_index,
+				equipment_slot = 2,
+				inventory_slot = 1,
+				timestamp = SESSION_TEST_TIMESTAMP,
+			})
+			if not send_next_session_body(self, request, "equipamento de peito sintético") then
+				return fail_session_test(self, "não foi possível equipar o Manto de Linho")
+			end
+			report_status("SESSION_TEST_CHEST_EQUIPMENT_SENT")
+			return true
+		end
+		local expected_armor_id = SESSION_TEST_ITEMIZED_EQUIPMENT and 8006 or 7002
+		local expected_defense_bonus = SESSION_TEST_ITEMIZED_VITALS and 1 or SESSION_TEST_ITEMIZED_EQUIPMENT and 4 or 2
+		local expected_total_defense_bonus = expected_defense_bonus
+		if equipment.equipment_slot ~= 2 or equipment.inventory_slot ~= 1 or
+			equipment.client_item_id ~= expected_armor_id or equipment.defense_bonus ~= expected_defense_bonus or
+			equipment.total_defense_bonus ~= expected_total_defense_bonus then
+			return fail_session_test(self, "servidor não confirmou a armadura itemizada")
+		end
+		state.chest_equipment_confirmed = true
+		report_status("SESSION_TEST_EQUIPMENT_PASS")
+		return true
+	end
+	if state.phase == "await-primary-death" and opcode == 0x338 then
+		local killed = string.byte(body, 13) + string.byte(body, 14) * 256
+		local killer = string.byte(body, 15) + string.byte(body, 16) * 256
+		if #body ~= 28 or killed ~= 0x4567 or killer ~= state.client_id then
+			return fail_session_test(self, "abate sintético não corresponde à primeira criatura")
+		end
+		state.phase = "await-level-progression"
+		report_status("SESSION_TEST_MONSTER_KILL_PASS")
+		return true
+	end
+	if state.phase == "await-level-progression" and opcode == 0x7f02 then
+		local progression, parse_error = Session.parse_progression_sync(body)
+		if not progression or progression.client_id ~= state.mob_index or progression.level ~= 2 or
+			progression.experience ~= 10 or progression.max_mp ~= (SESSION_TEST_ITEMIZED_VITALS and 118 or 110) then
+			return fail_session_test(self, parse_error or "nível 2 sintético não foi confirmado")
+		end
+		state.level = progression.level
+		state.phase = "await-chain-attribute-snapshot"
+		report_status("SESSION_TEST_LEVEL_UP_PASS")
+		return true
+	end
+	if state.phase == "await-chain-attribute-snapshot" and opcode == 0x7f04 then
+		local attributes, parse_error = Session.parse_attribute_sync(body)
+		if not attributes or attributes.client_id ~= state.mob_index or attributes.status ~= 3 or
+			attributes.available_points ~= 9 or attributes.int ~= 11 or attributes.max_mp ~= (SESSION_TEST_ITEMIZED_VITALS and 118 or 110) then
+			return fail_session_test(self, parse_error or "snapshot de atributos após o nível 2 divergiu")
+		end
+		state.phase = "await-chain-skill-snapshot"
+		report_status("SESSION_TEST_LEVEL_ATTRIBUTE_PASS")
+		return true
+	end
+	if opcode == 0x7f06 then
+		local skill_state, parse_error = Session.parse_skill_state(body)
+		if not skill_state or skill_state.client_id ~= state.mob_index then
+			return fail_session_test(self, parse_error or "ficha sintética de habilidades divergente")
+		end
+		if state.phase == "await-skill-learn" then
+			if skill_state.status ~= 1 or skill_state.skill_id ~= SESSION_TEST_SKILL_ID or
+				skill_state.available_points ~= 0 or not skill_state.learned_skills[SESSION_TEST_SKILL_ID] then
+				return fail_session_test(self, "servidor não confirmou aprendizado persistente")
+			end
+			report_status("SESSION_TEST_SKILL_LEARN_PASS")
+			return begin_test_movement(self, state)
+		end
+		if state.phase == "await-impacto-learn" then
+			if skill_state.status ~= 1 or skill_state.skill_id ~= 26 or skill_state.available_points ~= 0 or
+				not skill_state.learned_skills[SKILL_CARACATOA_CORTE_ID] or not skill_state.learned_skills[26] then
+				return fail_session_test(self, "servidor não confirmou Impacto Celeste e a cadeia Foema")
+			end
+			state.phase = "await-impacto-cooldown"
+			state.chain_wait_elapsed = 0
+			report_status("SESSION_TEST_SKILL_CHAIN_LEARN_PASS")
+			return true
+		end
+		if state.phase == "await-chain-skill-snapshot" then
+			if skill_state.status ~= 0 or skill_state.skill_id ~= 0xff or skill_state.available_points ~= 1 or
+				not skill_state.learned_skills[SKILL_CARACATOA_CORTE_ID] or skill_state.learned_skills[26] then
+				return fail_session_test(self, "ponto de nível 2 ou snapshot das habilidades divergiu")
+			end
+			local request = Session.build_skill_learn_body({
+				client_id = state.mob_index,
+				timestamp = SESSION_TEST_TIMESTAMP,
+				skill_id = 26,
+			})
+			state.phase = "await-impacto-learn"
+			if not send_next_session_body(self, request, "aprendizado sintético de Impacto Celeste") then
+				return fail_session_test(self, "não foi possível aprender Impacto Celeste")
+			end
+			report_status("SESSION_TEST_SKILL_CHAIN_LEARN_SENT")
+			return true
+		end
+		if state.phase ~= "await-attribute-allocation" and state.phase ~= "await-skill-snapshot" then
+			return fail_session_test(self, "snapshot de habilidades fora da sequência sintética")
+		end
+		if skill_state.status ~= 0 or skill_state.skill_id ~= 0xff or
+			skill_state.available_points ~= 1 or skill_state.learned_skills[SESSION_TEST_SKILL_ID] then
+			return fail_session_test(self, "pontos ou habilidades iniciais divergentes")
+		end
+		state.skill_snapshot_received = true
+		report_status("SESSION_TEST_SKILL_SNAPSHOT_PASS")
+		return maybe_begin_test_skill_learning(self, state)
+	end
+
+	if state.phase == "await-login" and opcode == 0x10a then
+		local login, parse_error = Session.parse_login_success(body)
+		if not login or login.client_id == 0 then
+			return fail_session_test(self, parse_error or "resposta 0x10A inválida")
+		end
+		local sequence_state, sequence_error = Session.new_request_sequence_state(login.hash_key_table)
+		if not sequence_state then return fail_session_test(self, sequence_error) end
+		state.client_id = login.client_id
+		state.sequence_state = sequence_state
+		state.phase = "await-token"
+		local token = Session.build_token_body({ pin = SESSION_TEST_PIN, timestamp = SESSION_TEST_TIMESTAMP })
+		if not send_next_session_body(self, token, "PIN sintético") then return false end
+		report_status("SESSION_TEST_LOGIN_OK")
+		return true
+	end
+
+	if state.phase == "await-token" and (opcode == 0xfde or opcode == 0xfdf) then
+		local token, parse_error = Session.parse_token_result(body)
+		if not token then return fail_session_test(self, parse_error) end
+		if not token.accepted then return fail_session_test(self, "PIN sintético recusado") end
+		state.phase = "await-roster"
+		report_status("SESSION_TEST_TOKEN_OK")
+		return true
+	end
+
+	if state.phase == "await-roster" and opcode == 0x110 then
+		local roster, parse_error = Session.parse_character_roster(body)
+		if not roster then return fail_session_test(self, parse_error) end
+		for _, character in ipairs(roster.selection) do
+			if character.name ~= "" then return fail_session_test(self, "roster novo deveria estar vazio") end
+		end
+		state.phase = "await-create-result"
+		local create = Session.build_character_create_body({ slot = 0, class_id = SESSION_TEST_CLASS_ID, name = "SYNTH_AVATAR", client_id = state.client_id, timestamp = SESSION_TEST_TIMESTAMP })
+		if not send_next_session_body(self, create, "criação sintética") then return false end
+		report_status("SESSION_TEST_EMPTY_ROSTER_OK")
+		return true
+	end
+
+	if state.phase == "await-create-result" and opcode == 0x7f01 then
+		local created, parse_error = Session.parse_character_create_result(body)
+		if not created or created.status ~= 0 or created.slot ~= 0 or created.class_id ~= SESSION_TEST_CLASS_ID then
+			return fail_session_test(self, parse_error or "criação sintética recusada")
+		end
+		state.phase = "await-created-roster"
+		report_status("SESSION_TEST_CREATE_OK")
+		return true
+	end
+
+	if state.phase == "await-created-roster" and opcode == 0x110 then
+		local roster, parse_error = Session.parse_character_roster(body)
+		local character = roster and roster.selection[1]
+		if not character or character.name ~= "SYNTH_AVATAR" or character.class_id ~= SESSION_TEST_CLASS_ID then
+			return fail_session_test(self, parse_error or "roster após criação não corresponde à personagem sintética")
+		end
+		state.phase = "await-world"
+		local entry = Session.build_character_entry_body({ slot = 0, client_id = state.client_id, shift = 3, timestamp = SESSION_TEST_TIMESTAMP })
+		if not send_next_session_body(self, entry, "entrada sintética no mundo") then return false end
+		report_status("SESSION_TEST_ROSTER_OK")
+		return true
+	end
+
+	if state.phase == "await-world" and opcode == 0x114 then
+		local world, parse_error = Session.parse_character_world(body)
+		if not world or world.name ~= "SYNTH_AVATAR" or world.position.x ~= 321 or world.position.y ~= 123 or world.class_id ~= SESSION_TEST_CLASS_ID or world.mob_index ~= world.client_id then
+			return fail_session_test(self, parse_error or "bootstrap sintético 0x114 divergente")
+		end
+		local expected_weapon_id = SESSION_TEST_ITEMIZED_EQUIPMENT and 8001 or 7001
+		local expected_armor_id = SESSION_TEST_ITEMIZED_EQUIPMENT and 8006 or 7002
+		if world.inventory_items[0] == nil or world.inventory_items[0].client_item_id ~= expected_weapon_id or
+			world.inventory_items[0].stack_count ~= 1 or world.inventory_items[1] == nil or
+			world.inventory_items[1].client_item_id ~= expected_armor_id or world.inventory_items[1].stack_count ~= 1 then
+			return fail_session_test(self, "itens iniciais não chegaram nos slots esperados")
+		end
+		state.mob_index = world.mob_index
+		state.world_position = world.position
+		state.class_id = world.class_id
+		state.world_monsters = {}
+		report_status("SESSION_TEST_INVENTORY_PASS")
+		msg.post("/transknight#movement", "world_bootstrap", {
+			class_id = world.class_id,
+			mob_index = world.mob_index,
+			x = world.position.x,
+			y = world.position.y,
+		})
+		state.phase = "await-attribute-snapshot"
+		local locked_skill = Session.build_single_target_skill_attack_body({
+			client_id = state.mob_index,
+			timestamp = SESSION_TEST_TIMESTAMP,
+			skill_id = SESSION_TEST_SKILL_ID,
+			target_mob_index = 0x4567,
+			source_position = state.world_position,
+			target_position = { x = state.world_position.x + 1, y = state.world_position.y },
+		})
+		if not send_next_session_body(self, locked_skill, "habilidade ainda não aprendida") then
+			return fail_session_test(self, "não foi possível verificar o bloqueio da habilidade")
+		end
+		report_status("SESSION_TEST_WORLD_ENTRY_PASS")
+		return true
+	end
+
+	if state.phase == "await-attribute-snapshot" and opcode == 0x7f04 then
+		local attributes, parse_error = Session.parse_attribute_sync(body)
+		if not attributes or attributes.client_id ~= state.mob_index or attributes.status ~= 3 or
+			attributes.available_points ~= 5 or attributes.int ~= 10 or attributes.max_mp ~= 100 then
+			return fail_session_test(self, parse_error or "snapshot inicial de atributos divergente")
+		end
+		state.initial_max_hp = attributes.max_hp
+		state.initial_max_mp = attributes.max_mp
+		local request = Session.build_attribute_allocation_body({
+			client_id = state.mob_index,
+			timestamp = SESSION_TEST_TIMESTAMP,
+			attribute_id = SESSION_TEST_ATTRIBUTE_ID,
+		})
+		state.phase = "await-attribute-allocation"
+		if not send_next_session_body(self, request, "alocação sintética de INT") then
+			return fail_session_test(self, "não foi possível enviar a alocação sintética")
+		end
+		report_status("SESSION_TEST_ATTRIBUTE_SENT")
+		return true
+	end
+
+	if state.phase == "await-attribute-allocation" and opcode == 0x7f04 then
+		local attributes, parse_error = Session.parse_attribute_sync(body)
+		if not attributes or attributes.client_id ~= state.mob_index or attributes.status ~= 0 or
+			attributes.attribute_id ~= SESSION_TEST_ATTRIBUTE_ID or attributes.available_points ~= 4 or
+			attributes[SESSION_TEST_ATTRIBUTE_STAT] ~= 11 then
+			return fail_session_test(self, parse_error or "atributo de escala sintético não foi confirmado")
+		end
+		report_status("SESSION_TEST_ATTRIBUTE_PASS")
+		state.allocated_max_hp = attributes.max_hp
+		state.allocated_max_mp = attributes.max_mp
+		state.attribute_allocation_confirmed = true
+		if not state.skill_snapshot_received then
+			state.phase = "await-skill-snapshot"
+			return true
+		end
+		return maybe_begin_test_skill_learning(self, state)
+	end
+
+	if (state.phase == "await-attribute-snapshot" or state.phase == "await-attribute-allocation" or state.phase == "await-skill-snapshot" or state.phase == "await-skill-learn" or state.phase == "await-move") and opcode == 0x364 then
+		local monster, parse_error = Session.parse_monster_spawn(body)
+		if not monster then return fail_session_test(self, parse_error or "pacote de criatura sintética inválido") end
+		state.world_monsters = state.world_monsters or {}
+		state.world_monsters[monster.entity_id] = monster
+		update_selected_target(self, state)
+		return true
+	end
+
+	if state.phase == "await-move" and opcode == 0x366 then
+		local movement, parse_error = Session.parse_move_response(body)
+		if not movement or movement.client_id ~= state.mob_index or movement.destination.x ~= state.world_position.x + 1 or movement.destination.y ~= state.world_position.y then
+			return fail_session_test(self, parse_error or "resposta sintética 0x366 divergente")
+		end
+		state.world_position = movement.destination
+		update_selected_target(self, state)
+		msg.post("/transknight#movement", "world_move_confirmed", {
+			x = movement.destination.x,
+			y = movement.destination.y,
+		})
+		report_status("SESSION_TEST_MOVE_PASS")
+		local selected_skill = SKILL_DEFINITIONS[SESSION_TEST_SKILL_ID]
+		if selected_skill and (selected_skill.effect_type == "heal" or selected_skill.effect_type == "defense") then
+			local heal_request = Session.build_single_target_skill_attack_body({
+				client_id = state.mob_index,
+				timestamp = SESSION_TEST_TIMESTAMP,
+				skill_id = SESSION_TEST_SKILL_ID,
+				target_mob_index = state.mob_index,
+				source_position = state.world_position,
+				target_position = state.world_position,
+			})
+			state.phase = selected_skill.effect_type == "defense" and "await-skill-defense-mana" or "await-skill-heal-mana"
+			if not send_next_session_body(self, heal_request, selected_skill.name .. " sintética") then
+				return fail_session_test(self, "não foi possível enviar a cura sintética")
+			end
+			report_status("SESSION_TEST_SKILL_HEAL_SENT")
+			return true
+		end
+		local target = state.selected_target
+		if not target then return fail_session_test(self, "criatura de teste não foi selecionada") end
+		local skill = Session.build_single_target_skill_attack_body({
+			client_id = state.mob_index,
+			timestamp = SESSION_TEST_TIMESTAMP,
+			skill_id = SESSION_TEST_SKILL_ID,
+			target_mob_index = target.entity_id,
+			source_position = state.world_position,
+			target_position = target.position,
+		})
+		state.phase = "await-skill-mana"
+		if not send_next_session_body(self, skill, "habilidade sintética") then
+			return fail_session_test(self, "não foi possível enviar a habilidade sintética")
+		end
+		report_status("SESSION_TEST_SKILL_SENT")
+		return true
+	end
+
+	if state.phase == "await-skill-heal-mana" and opcode == 0x181 then
+		local resources, parse_error = Session.parse_hp_mp_sync(body)
+		local skill = SKILL_DEFINITIONS[SESSION_TEST_SKILL_ID]
+		if not resources or resources.client_id ~= state.mob_index or resources.current_mp ~= 100 - (skill and skill.mana or 0) or resources.current_hp <= 10 then
+			return fail_session_test(self, parse_error or "servidor não confirmou HP restaurado e custo de mana da Foema")
+		end
+		state.heal_test_current_hp = resources.current_hp
+		state.current_mp = resources.current_mp
+		state.phase = "await-skill-heal-result"
+		report_status("SESSION_TEST_SKILL_HEAL_RESOURCE_PASS")
+		return true
+	end
+
+	if state.phase == "await-skill-heal-result" and opcode == 0x7f09 then
+		local result, parse_error = Session.parse_caracatoa_skill_effect_result(body)
+		local skill = SKILL_DEFINITIONS[SESSION_TEST_SKILL_ID]
+		local expectedHeal = math.min((skill and skill.heal_amount or 0) + 1, (result and result.max_hp or 0) - 10)
+		if not result or result.client_id ~= state.mob_index or result.status ~= 0 or
+			result.skill_id ~= SESSION_TEST_SKILL_ID or result.effect_type ~= 1 or
+			result.healed ~= expectedHeal or result.current_hp ~= 10 + expectedHeal or
+			result.current_hp ~= state.heal_test_current_hp or result.current_mp ~= 100 - skill.mana then
+			return fail_session_test(self, parse_error or "resultado de cura Foema divergente")
+		end
+		report_status("SESSION_TEST_SKILL_HEAL_PASS")
+		state.phase = "complete"
+		close_socket(self)
+		return true
+	end
+
+	if state.phase == "await-skill-defense-mana" and opcode == 0x181 then
+		local resources, parse_error = Session.parse_hp_mp_sync(body)
+		local skill = SKILL_DEFINITIONS[SESSION_TEST_SKILL_ID]
+		if not resources or resources.client_id ~= state.mob_index or resources.current_mp ~= 100 - (skill and skill.mana or 0) then
+			return fail_session_test(self, parse_error or "servidor não confirmou o custo de mana da Guarda Inabalável")
+		end
+		state.current_mp = resources.current_mp
+		state.phase = "await-skill-defense-result"
+		report_status("SESSION_TEST_SKILL_DEFENSE_RESOURCE_PASS")
+		return true
+	end
+
+	if state.phase == "await-skill-defense-result" and opcode == 0x7f09 then
+		local result, parse_error = Session.parse_caracatoa_skill_effect_result(body)
+		local skill = SKILL_DEFINITIONS[SESSION_TEST_SKILL_ID]
+		local expectedDefense = (skill and skill.defense_bonus or 0) + 1
+		if not result or result.client_id ~= state.mob_index or result.status ~= 0 or
+			result.skill_id ~= SESSION_TEST_SKILL_ID or result.effect_type ~= 2 or
+			result.defense_bonus ~= expectedDefense or result.duration_ms ~= skill.duration_ms or
+			result.current_hp <= 0 or result.current_mp ~= 100 - skill.mana then
+			return fail_session_test(self, parse_error or "resultado da Guarda Inabalável divergente")
+		end
+		state.defense_test_hp = result.current_hp
+		local target = state.world_monsters[0x4567]
+		if not target then return fail_session_test(self, "criatura para testar a defesa não foi encontrada") end
+		local attack = Session.build_basic_attack_body({
+			client_id = state.mob_index,
+			timestamp = SESSION_TEST_TIMESTAMP,
+			target_mob_index = target.entity_id,
+			source_position = state.world_position,
+			target_position = target.position,
+		})
+		state.phase = "await-defense-proof-hit"
+		if not send_next_session_body(self, attack, "ataque para validar defesa") then
+			return fail_session_test(self, "não foi possível enviar o ataque de validação defensiva")
+		end
+		return true
+	end
+
+	if state.phase == "await-defense-proof-hit" and opcode == 0x39d then
+		local result, parse_error = Session.parse_basic_attack_result(body)
+		if not result or result.target_mob_index ~= 0x4567 or result.damage < 1 then
+			return fail_session_test(self, parse_error or "ataque sintético de validação não foi confirmado")
+		end
+		state.phase = "await-defense-proof-damage"
+		return true
+	end
+
+	if state.phase == "await-defense-proof-damage" and opcode == 0x181 then
+		local resources, parse_error = Session.parse_hp_mp_sync(body)
+		if not resources or resources.client_id ~= state.mob_index or resources.current_mp ~= 100 - SKILL_DEFINITIONS[SESSION_TEST_SKILL_ID].mana or
+			resources.current_hp <= 0 or resources.current_hp >= state.defense_test_hp then
+			return fail_session_test(self, parse_error or "retaliação não demonstrou mitigação de dano pela defesa ativa")
+		end
+		report_status("SESSION_TEST_SKILL_DEFENSE_DAMAGE_PASS")
+		state.phase = "complete"
+		close_socket(self)
+		return true
+	end
+
+	if state.phase == "await-skill-mana" and opcode == 0x181 then
+		local resources, parse_error = Session.parse_hp_mp_sync(body)
+		local skill = SKILL_DEFINITIONS[SESSION_TEST_SKILL_ID]
+		local expected_mp = 100 - (skill and skill.mana or 0)
+		if not resources or resources.client_id ~= state.mob_index or resources.current_mp ~= expected_mp then
+			return fail_session_test(self, parse_error or "servidor não confirmou o custo de mana da habilidade de classe")
+		end
+		state.current_mp = resources.current_mp
+		state.phase = "await-skill-result"
+		report_status("SESSION_TEST_SKILL_MANA_PASS")
+		return true
+	end
+
+	if state.phase == "await-skill-result" and opcode == 0x39d then
+		local result, parse_error = Session.parse_skill_attack_result(body)
+		local skill = SKILL_DEFINITIONS[SESSION_TEST_SKILL_ID]
+		local attribute_bonus = skill and skill.scaling_attribute == SESSION_TEST_ATTRIBUTE_STAT and 1 or 0
+		local expected_attack = SESSION_TEST_ITEMIZED_EQUIPMENT and 13 or 15
+		local expected_damage = math.min(
+			expected_attack + (skill and skill.damage_bonus or 0) + attribute_bonus,
+			state.selected_target and state.selected_target.current_hp or 0)
+		if not result or result.skill_id ~= SESSION_TEST_SKILL_ID or result.target_mob_index ~= state.selected_target.entity_id or result.damage ~= expected_damage then
+			return fail_session_test(self, parse_error or string.format(
+				"resultado da habilidade divergente: classe=%d habilidade=%d dano=%d esperado=%d",
+				SESSION_TEST_CLASS_ID,
+				result and result.skill_id or -1,
+				result and result.damage or -1,
+				expected_damage))
+		end
+		state.selected_target.current_hp = math.max(0, state.selected_target.current_hp - result.damage)
+		if SESSION_TEST_CLASS_ID ~= 1 then
+			report_status("SESSION_TEST_CLASS_SKILL_PASS")
+			state.phase = "complete"
+			close_socket(self)
+			return true
+		end
+		if result.damage ~= expected_damage or state.selected_target.current_hp ~= 0 then
+			return fail_session_test(self, "Caracatoa Corte não derrotou a criatura sintética")
+		end
+		update_selected_target(self, state)
+		state.phase = "await-primary-death"
+		report_status("SESSION_TEST_SKILL_CAST_PASS")
+		return true
+	end
+
+	if state.phase == "await-impacto-mana" and opcode == 0x181 then
+		local resources, parse_error = Session.parse_hp_mp_sync(body)
+		if not resources or resources.client_id ~= state.mob_index or resources.current_mp ~= 81 then
+			return fail_session_test(self, parse_error or "servidor não confirmou o custo de 12 MP de Impacto Celeste")
+		end
+		state.current_mp = resources.current_mp
+		state.phase = "await-impacto-result"
+		report_status("SESSION_TEST_SKILL_CHAIN_MANA_PASS")
+		return true
+	end
+
+	if state.phase == "await-impacto-result" and opcode == 0x39d then
+		local result, parse_error = Session.parse_skill_attack_result(body)
+		-- Impacto Celeste usa o poder mágico da Foema; bônus de ataque físico
+		-- da lâmina/peitoral inicial não devem aumentar esse cálculo.
+		local expected_damage = 25
+		if not result then
+			return fail_session_test(self, parse_error or "resposta de Impacto Celeste inválida")
+		end
+		if result.skill_id ~= 26 or result.target_mob_index ~= 0x4568 or result.damage ~= expected_damage then
+			return fail_session_test(self, string.format(
+				"Impacto Celeste divergente: skill=%s alvo=%s dano=%s esperado=%s",
+				tostring(result.skill_id),
+				tostring(result.target_mob_index),
+				tostring(result.damage),
+				tostring(expected_damage)))
+		end
+		report_status("SESSION_TEST_SKILL_CHAIN_CAST_PASS")
+		state.phase = "complete"
+		close_socket(self)
+		return true
+	end
+
+	return fail_session_test(self, string.format(
+		"resposta fora da ordem esperada: opcode 0x%03X na fase %s",
+		opcode,
+		tostring(state.phase)))
+end
+
+local function begin_session_test(self)
+	self.session_test = { phase = "await-login" }
+	local login = Session.build_account_login_body({
+		account_id = SESSION_TEST_ACCOUNT,
+		password = SESSION_TEST_PASSWORD,
+		client_version = 0x12345678,
+		adapter_id = string.rep("\0", 16),
+		mac = string.rep("\0", 6),
+		timestamp = SESSION_TEST_TIMESTAMP,
+	})
+	if send_session_body(self, login, 0x5a, "login sintético") then
+		report_status("SESSION_TEST_LOGIN_SENT")
+	end
+end
+
+local function begin_live_session(self, account_id, password)
+	if SESSION_TEST_MODE then
+		post_ui("session_error", { text = "A interface fica desativada durante o teste sintético.", screen = "login" })
+		return
+	end
+	if not valid_account(account_id, password) then
+		post_ui("session_error", { text = "ID da conta ou senha fora do formato aceito.", screen = "login" })
+		return
+	end
+	if not connect_local(self) then
+		post_ui("session_error", { text = "Servidor Caracatoa local indisponível em 127.0.0.1:" .. tostring(SERVER_PORT) .. ".", screen = "login" })
+		return
+	end
+	local ok, body = pcall(Session.build_account_login_body, {
+		account_id = account_id,
+		password = password,
+		timestamp = os.time() % 4294967296,
+	})
+	account_id = nil
+	password = nil
+	if not ok or not body then
+		post_ui("session_error", { text = "Não foi possível preparar o login local.", screen = "login" })
+		return
+	end
+	self.session_test = nil
+	self.live_session = { phase = "await-login" }
+	if not send_session_body(self, body, 0x5a, "login local") then
+		self.live_session = nil
+		post_ui("session_error", { text = "Não foi possível enviar o login ao servidor local.", screen = "login" })
+		return
+	end
+	report_status("LOCAL_LOGIN_REQUEST_SENT")
+end
+
+local function submit_live_pin(self, pin)
+	local state = self.live_session
+	if not state or state.phase ~= "await-pin" then return end
+	if type(pin) ~= "string" or #pin < 4 or #pin > 6 or pin:find("[^0-9]") then
+		post_ui("session_error", { text = "A senha numérica deve ter de 4 a 6 dígitos.", screen = "pin" })
+		return
+	end
+	local ok, body = pcall(Session.build_token_body, { pin = pin, timestamp = os.time() % 4294967296 })
+	pin = nil
+	if not ok or not body then
+		post_ui("session_error", { text = "Não foi possível preparar a confirmação local.", screen = "pin" })
+		return
+	end
+	state.phase = "await-token"
+	if not send_next_session_body(self, body, "confirmação numérica") then
+		return fail_live_session(self, "Não foi possível enviar a confirmação ao servidor local.", "pin")
+	end
+	report_status("LOCAL_PIN_REQUEST_SENT")
+end
+
+local function create_live_character(self, message)
+	local state = self.live_session
+	if not state or state.phase ~= "character-select" then return end
+	local slot, class_id, name = message.slot, message.class_id, message.name
+	message.name = nil
+	if type(slot) ~= "number" or slot < 0 or slot > 3 or slot ~= math.floor(slot) or
+		type(class_id) ~= "number" or class_id < 0 or class_id > 3 or class_id ~= math.floor(class_id) or
+		type(name) ~= "string" or #name < 1 or #name > 16 or name:find("[^A-Za-z0-9_]") then
+		post_ui("session_create_error", { text = "Nome, espaço ou classe fora do formato aceito." })
+		return
+	end
+	if state.roster[slot + 1] and state.roster[slot + 1].name ~= "" then
+		post_ui("session_create_error", { text = "Esse espaço já está ocupado." })
+		return
+	end
+	local selected_name = name
+	local ok, body = pcall(Session.build_character_create_body, {
+		slot = slot,
+		class_id = class_id,
+		name = name,
+		client_id = state.client_id,
+		timestamp = os.time() % 4294967296,
+	})
+	name = nil
+	if not ok or not body then
+		post_ui("session_create_error", { text = "Não foi possível preparar a criação local." })
+		return
+	end
+	state.selected_slot = slot
+	state.selected_class = class_id
+	state.selected_name = selected_name
+	state.phase = "await-create-result"
+	if not send_next_session_body(self, body, "criação de personagem") then
+		return fail_live_session(self, "Não foi possível enviar a criação ao servidor local.", "create")
+	end
+	report_status("LOCAL_CHARACTER_CREATE_SENT")
+end
+
+local function select_live_character(self, slot)
+	local state = self.live_session
+	if not state or state.phase ~= "character-select" then return end
+	if type(slot) ~= "number" or slot < 0 or slot > 3 or slot ~= math.floor(slot) then
+		post_ui("session_error", { text = "Espaço de personagem inválido.", screen = "roster" })
+		return
+	end
+	local character = state.roster[slot + 1]
+	if not character or character.name == "" then
+		post_ui("session_error", { text = "Esse espaço está vazio. Use Criar personagem.", screen = "roster" })
+		return
+	end
+	local ok, body = pcall(Session.build_character_entry_body, {
+		slot = slot,
+		client_id = state.client_id,
+		shift = 3,
+		timestamp = os.time() % 4294967296,
+	})
+	if not ok or not body then
+		post_ui("session_error", { text = "Não foi possível preparar a entrada no mundo.", screen = "roster" })
+		return
+	end
+	state.selected_slot = slot
+	state.selected_name = character.name
+	state.selected_class = character.class_id
+	state.phase = "await-world"
+	if not send_next_session_body(self, body, "entrada no mundo") then
+		return fail_live_session(self, "Não foi possível enviar a entrada ao mundo local.", "roster")
+	end
+	report_status("LOCAL_WORLD_ENTRY_REQUEST_SENT")
+end
+
+function init(self)
+	self.poll_elapsed = 0
+	self.decoder = nil
+	self.socket = nil
+	self.session_test = nil
+	self.live_session = nil
+
+	local codec_ok, codec_message = Protocol.run_self_test()
+	if not codec_ok then
+		report_status("Codec local recusou as fixtures: " .. tostring(codec_message))
+		return
+	end
+	local session_ok, session_message = Session.run_self_test(Protocol)
+	if not session_ok then
+		report_status("SESSION_FIXTURES_FAIL: " .. tostring(session_message))
+		return
+	end
+	local progression_ok, progression_message = CaracatoaProgression.run_self_test()
+	if not progression_ok then
+		report_status("PROGRESSION_FIXTURES_FAIL: " .. tostring(progression_message))
+		return
+	end
+	local decoder, decoder_error = new_decoder()
+	if not decoder then
+		report_status("Codec local indisponível: " .. tostring(decoder_error))
+		return
+	end
+	self.decoder = decoder
+	report_status(codec_message)
+	report_status("SESSION_FIXTURES_PASS; " .. progression_message .. "; credenciais ausentes dos logs e fixtures.")
+
+	if not connect_local(self) then return end
+	if HUD_REGISTRATION_TEST_MODE then
+		report_status("HUD_REGISTRATION_TEST_MODE_ENABLED")
+		post_ui("hud_registration_test_start", {
+			account_id = os.getenv("CARACATOA_HUD_TEST_ACCOUNT_ID"),
+			password = os.getenv("CARACATOA_HUD_TEST_PASSWORD"),
+			pin = os.getenv("CARACATOA_HUD_TEST_PIN"),
+			character_name = os.getenv("CARACATOA_HUD_TEST_CHARACTER_NAME"),
+			class_id = tonumber(os.getenv("CARACATOA_HUD_TEST_CLASS_ID") or "0"),
+		})
+	elseif SESSION_TEST_MODE then
+		report_status("TCP local conectado; modo de sessão sintética em loopback")
+		report_status("SESSION_TEST_MODE_LOOPBACK")
+		if HUD_INPUT_TEST_MODE then
+			report_status("HUD_INPUT_TEST_MODE_ENABLED")
+			report_status("HUD_INPUT_TEST_START_REQUESTED")
+			post_ui("hud_input_test_start")
+		else
+			self.session_test_started = true
+			begin_session_test(self)
+		end
+	else
+		report_status("Servidor Caracatoa local pronto; aguardando entrada do jogador.")
+	end
+end
+
+function update(self, dt)
+	if is_html5_runtime() and self.registration_pending then
+		self.registration_poll_elapsed = (self.registration_poll_elapsed or 0) + dt
+		self.registration_elapsed = (self.registration_elapsed or 0) + dt
+		if self.registration_elapsed >= 12 then
+			if self.registration_request_id then
+				pcall(html5.run, "CaracatoaLocalBridge.acknowledgeRegistration(" .. tostring(self.registration_request_id) .. ")")
+			end
+			self.registration_pending = false
+			self.registration_request_id = nil
+			self.registration_account = nil
+			post_ui("account_registration_result", { success = false, text = "O servidor local não respondeu ao cadastro. Tente novamente." })
+		elseif self.registration_poll_elapsed >= POLL_INTERVAL_SECONDS then
+			self.registration_poll_elapsed = 0
+			local request_id = self.registration_request_id
+			local poll_ok, serialized_result = pcall(html5.run,
+				"CaracatoaLocalBridge.pollRegistration(" .. tostring(request_id) .. ")")
+			if poll_ok and type(serialized_result) == "string" and serialized_result ~= "" then
+				local result_ok, result = pcall(json.decode, serialized_result)
+				if result_ok and type(result) == "table" and result.type == "registration"
+						and tonumber(result.requestId) == request_id and result.completed == true then
+					local response_body = hex_to_binary(result.bodyHex or "") or ""
+					finish_registration(self, tonumber(result.status) or 0, response_body, self.registration_account)
+					pcall(html5.run,
+						"CaracatoaLocalBridge.acknowledgeRegistration(" .. tostring(request_id) .. ")")
+					self.registration_account = nil
+					self.registration_request_id = nil
+				end
+			end
+		end
+	end
+	if self.session_test and self.session_test.phase == "await-impacto-cooldown" then
+		self.session_test.chain_wait_elapsed = self.session_test.chain_wait_elapsed + dt
+		if self.session_test.chain_wait_elapsed >= 2 then
+			if not begin_test_impacto_cast(self, self.session_test) then return end
+		end
+	end
+	if self.live_session and self.live_session.phase == "in-world" then
+		if self.live_session.trade_pending then
+			self.live_session.trade_pending_elapsed = self.live_session.trade_pending_elapsed + dt
+			if self.live_session.trade_pending_elapsed >= TRADE_RESPONSE_TIMEOUT_SECONDS then
+				self.live_session.trade_pending = false
+				post_ui("world_trade_rejected", { text = "O servidor não confirmou a ação de troca." })
+			end
+		end
+		if self.live_session.shop_pending then
+			self.live_session.shop_pending_elapsed = self.live_session.shop_pending_elapsed + dt
+			if self.live_session.shop_pending_elapsed >= 8 then
+				self.live_session.shop_pending = false
+				self.live_session.shop_pending_elapsed = 0
+				post_ui("world_shop_rejected", { text = "O mercado não confirmou a ação." })
+			end
+		end
+		if self.live_session.move_pending then
+			self.live_session.move_elapsed = self.live_session.move_elapsed + dt
+			if self.live_session.move_elapsed >= MOVE_RESPONSE_TIMEOUT_SECONDS then
+				fail_live_session(self, "O servidor local não confirmou o movimento.", "world")
+				return
+			end
+		end
+		if self.live_session.skill_pending then
+			self.live_session.skill_pending_elapsed = self.live_session.skill_pending_elapsed + dt
+			if self.live_session.skill_pending_elapsed >= SKILL_RESPONSE_TIMEOUT_SECONDS then
+				self.live_session.skill_pending = false
+				self.live_session.pending_skill_id = nil
+				self.live_session.pending_skill_target = nil
+				post_ui("world_skill_rejected", { text = "O servidor não confirmou a habilidade." })
+			end
+		end
+		if self.live_session.attribute_pending then
+			self.live_session.attribute_pending_elapsed = self.live_session.attribute_pending_elapsed + dt
+			if self.live_session.attribute_pending_elapsed >= ATTRIBUTE_RESPONSE_TIMEOUT_SECONDS then
+				self.live_session.attribute_pending = false
+				self.live_session.pending_attribute_id = nil
+				post_ui("world_attribute_rejected", { text = "O servidor não confirmou os atributos." })
+			end
+		end
+		if self.live_session.skill_learning_pending then
+			self.live_session.skill_learning_elapsed = self.live_session.skill_learning_elapsed + dt
+			if self.live_session.skill_learning_elapsed >= SKILL_LEARN_RESPONSE_TIMEOUT_SECONDS then
+				self.live_session.skill_learning_pending = false
+				self.live_session.pending_skill_id = nil
+				post_ui("world_skill_learning_rejected", { text = "O servidor não confirmou o aprendizado." })
+			end
+		end
+		if self.live_session.equipment_pending then
+			self.live_session.equipment_pending_elapsed =
+				(self.live_session.equipment_pending_elapsed or 0) + dt
+			if self.live_session.equipment_pending_elapsed >= EQUIPMENT_RESPONSE_TIMEOUT_SECONDS then
+				self.live_session.equipment_pending = false
+				self.live_session.pending_equipment_slot = nil
+				post_ui("world_equipment_rejected", { text = "O servidor não confirmou o equipamento." })
+			end
+		end
+		if self.live_session.mount_pending then
+			self.live_session.mount_pending_elapsed = (self.live_session.mount_pending_elapsed or 0) + dt
+			if self.live_session.mount_pending_elapsed >= MOUNT_RESPONSE_TIMEOUT_SECONDS then
+				self.live_session.mount_pending = false
+				self.live_session.pending_mount_action = nil
+				post_ui("world_mount_rejected", { text = "O servidor não confirmou a ação da montaria." })
+			end
+		end
+		if self.live_session.stage_pending and self.live_session.stage_pending_elapsed >= 8 then
+			self.live_session.stage_pending = false
+			post_ui("world_stage_rejected", { text = "O servidor não confirmou o ritual." })
+		end
+		if self.live_session.refinement_pending and self.live_session.refinement_pending_elapsed >= 8 then
+			self.live_session.refinement_pending = false
+			post_ui("world_refinement_rejected", { text = "O servidor não confirmou o refinamento." })
+		end
+		if self.live_session.stage_pending then self.live_session.stage_pending_elapsed = (self.live_session.stage_pending_elapsed or 0) + dt end
+		if self.live_session.refinement_pending then self.live_session.refinement_pending_elapsed = (self.live_session.refinement_pending_elapsed or 0) + dt end
+		for skill_id, remaining in pairs(self.live_session.skill_cooldown_remaining or {}) do
+			self.live_session.skill_cooldown_remaining[skill_id] = math.max(0, remaining - dt)
+		end
+		self.live_session.keepalive_elapsed = self.live_session.keepalive_elapsed + dt
+		if self.live_session.keepalive_elapsed >= KEEPALIVE_INTERVAL_SECONDS then
+			self.live_session.keepalive_elapsed = 0
+			local body = Session.build_keepalive_body({
+				mob_index = self.live_session.mob_index,
+				timestamp = os.time() % 4294967296,
+			})
+			if not send_next_session_body(self, body, "keepalive") then
+				fail_live_session(self, "A conexão com o mundo local foi encerrada.", "world")
+			end
+		end
+	end
+	if not self.socket then return end
+	self.poll_elapsed = self.poll_elapsed + dt
+	if self.poll_elapsed < POLL_INTERVAL_SECONDS then return end
+	self.poll_elapsed = 0
+
+	local incoming
+	local receive_error
+	if self.browser_transport then
+		local bridge_ok, serialized_events = pcall(html5.run, "CaracatoaLocalBridge.poll()")
+		if not bridge_ok or type(serialized_events) ~= "string" then
+			receive_error = "browser bridge"
+		else
+			local events_ok, events = pcall(json.decode, serialized_events)
+			if not events_ok or type(events) ~= "table" then
+				receive_error = "invalid browser bridge event"
+			else
+				local chunks = {}
+				for _, event in ipairs(events) do
+					if event.type == "message" then
+						local chunk = hex_to_binary(event.hex)
+						if chunk then chunks[#chunks + 1] = chunk else receive_error = "invalid browser data" end
+					elseif event.type == "close" or event.type == "error" then
+						receive_error = "browser connection closed"
+					end
+				end
+				if #chunks > 0 then incoming = table.concat(chunks) end
+			end
+		end
+	else
+		local data, socket_error, partial = self.socket:receive(RECEIVE_CHUNK_BYTES)
+		incoming = data or partial
+		receive_error = socket_error
+	end
+	if incoming and #incoming > 0 then
+		local decoded = Protocol.feed(self.decoder, incoming)
+		if not decoded.ok then
+			report_status("Frame local rejeitado: " .. tostring(decoded.error))
+			if self.live_session then fail_live_session(self, "O servidor local enviou um frame inválido.", "login") end
+			close_socket(self)
+			return
+		end
+		if #decoded.frames > 0 then
+			if self.session_test then
+				for _, frame in ipairs(decoded.frames) do
+					if not handle_session_test_frame(self, frame.body) then return end
+					if self.session_test.phase == "complete" then return end
+				end
+			elseif self.live_session then
+				for _, frame in ipairs(decoded.frames) do
+					if not handle_live_session_frame(self, frame.body) then return end
+				end
+			else
+				report_status(tostring(#decoded.frames) .. " frame(s) local(is) decodificado(s); sessão ainda desativada")
+			end
+		end
+	end
+
+	if receive_error and receive_error ~= "timeout" then
+		local stream_error = Protocol.finish(self.decoder)
+		if self.live_session then
+			fail_live_session(self, stream_error ~= "" and "A conexão local terminou com dados incompletos." or "Conexão encerrada pelo servidor Caracatoa local.", self.live_session.phase == "in-world" and "world" or "login")
+		else
+			report_status(stream_error ~= "" and ("Stream local terminou incompleto: " .. stream_error) or "Conexão local encerrada pelo servidor")
+		end
+		close_socket(self)
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("ui_hud_registration_test_result") then
+		if HUD_REGISTRATION_TEST_MODE then
+			local prefix = HUD_ONBOARDING_TEST_MODE and "HUD_ONBOARDING_TEST_" or "HUD_REGISTRATION_TEST_"
+			local marker = prefix .. (message.passed == true and "PASS" or "FAIL")
+			report_status(marker .. ":" .. tostring(message.phase or "unknown"))
+		end
+	elseif message_id == hash("ui_hud_input_test_result") then
+		if SESSION_TEST_MODE then
+			if message.passed == true then
+				report_status("HUD_INPUT_TEST_REGISTER_BUTTON_PASS")
+				if not self.session_test_started then
+					self.session_test_started = true
+					begin_session_test(self)
+				end
+			else
+				report_status("HUD_INPUT_TEST_REGISTER_BUTTON_FAIL")
+			end
+		end
+	elseif message_id == hash("ui_register_account") then
+		local account_id, password, token = message.account_id, message.password, message.token
+		message.account_id = nil
+		message.password = nil
+		message.token = nil
+		register_local_account(self, account_id, password, token)
+		account_id = nil
+		password = nil
+		token = nil
+	elseif message_id == hash("ui_login_submit") then
+		local account_id, password = message.account_id, message.password
+		message.account_id = nil
+		message.password = nil
+		begin_live_session(self, account_id, password)
+		account_id = nil
+		password = nil
+	elseif message_id == hash("ui_pin_submit") then
+		local pin = message.pin
+		message.pin = nil
+		submit_live_pin(self, pin)
+		pin = nil
+	elseif message_id == hash("ui_create_character") then
+		create_live_character(self, message)
+	elseif message_id == hash("ui_select_character") then
+		select_live_character(self, message.slot)
+	elseif message_id == hash("world_move_request") then
+		local state = self.live_session
+		if not state or state.phase ~= "in-world" or state.move_pending then return end
+		local ok, body = pcall(Session.build_move_body, {
+			mob_index = state.mob_index,
+			position = state.world_position,
+			direction_code = message.direction_code,
+			timestamp = os.time() % 4294967296,
+		})
+		if not ok then
+			msg.post("/transknight#movement", "world_move_rejected")
+			return
+		end
+		state.move_pending = true
+		state.move_elapsed = 0
+		if not send_next_session_body(self, body, "movimento do jogador") then
+			return fail_live_session(self, "Não foi possível enviar o movimento ao servidor local.", "world")
+		end
+	elseif message_id == hash("world_trade_action") then
+		local state = self.live_session
+		if not state or state.phase ~= "in-world" or state.trade_pending then
+			post_ui("world_trade_rejected", { text = "Aguarde a resposta da ação de troca." })
+			return
+		end
+		local ok, body = pcall(Session.build_trade_action_body, {
+			client_id = state.mob_index,
+			timestamp = os.time() % 4294967296,
+			action = message.action,
+			target_name = message.target_name,
+			trade_id = message.trade_id,
+			inventory_slot = message.inventory_slot,
+			gold = message.gold,
+			revision = message.revision,
+		})
+		if not ok then
+			post_ui("world_trade_rejected", { text = "Não foi possível preparar esta ação de troca." })
+			return
+		end
+		state.trade_pending = true
+		state.trade_pending_elapsed = 0
+		post_ui("world_trade_pending")
+		if not send_next_session_body(self, body, "ação de troca") then
+			return fail_live_session(self, "Não foi possível enviar a ação de troca ao servidor local.", "world")
+		end
+	elseif message_id == hash("world_shop_action") then
+		local state = self.live_session
+		if not state or state.phase ~= "in-world" or state.shop_pending then
+			post_ui("world_shop_rejected", { text = "Aguarde a resposta da ação do mercado." })
+			return
+		end
+		local request_id = nil
+		if message.action == "buy" then
+			state.shop_request_counter = (state.shop_request_counter or 0) + 1
+			if state.shop_request_counter > 0xFFFFFFFFFFFF then state.shop_request_counter = 1 end
+			request_id = string.format("%08x-%04x-4000-8000-%012x",
+				os.time() % 4294967296, state.mob_index, state.shop_request_counter)
+		end
+		local ok, body = pcall(Session.build_player_shop_action_body, {
+			client_id = state.mob_index,
+			timestamp = os.time() % 4294967296,
+			action = message.action,
+			inventory_slot = message.inventory_slot,
+			asking_gold = message.asking_gold,
+			listing_id = message.listing_id,
+			request_id = request_id,
+		})
+		if not ok then
+			post_ui("world_shop_rejected", { text = "Não foi possível preparar a ação do mercado." })
+			return
+		end
+		state.shop_pending = true
+		state.shop_pending_elapsed = 0
+		post_ui("world_shop_pending", { action = message.action })
+		if not send_next_session_body(self, body, "ação do mercado") then
+			return fail_live_session(self, "Não foi possível enviar a ação do mercado ao servidor local.", "world")
+		end
+	elseif message_id == hash("world_equipment_toggle") then
+		local state = self.live_session
+		if not state or state.phase ~= "in-world" or state.equipment_pending then
+			post_ui("world_equipment_rejected", { text = "Aguarde a confirmação do equipamento." })
+			return
+		end
+		local equipment_slot = message.equipment_slot
+		local inventory_slot = message.inventory_slot
+		if type(equipment_slot) ~= "number" or equipment_slot < 0 or equipment_slot > 5 or
+			equipment_slot ~= math.floor(equipment_slot) or type(inventory_slot) ~= "number" or
+			inventory_slot < 0 or inventory_slot > 59 or inventory_slot ~= math.floor(inventory_slot) then
+			post_ui("world_equipment_rejected", { text = "Selecione um equipamento válido no inventário." })
+			return
+		end
+		local equipped = state.equipment and state.equipment[equipment_slot]
+		if equipped and equipped.inventory_slot == inventory_slot then inventory_slot = 0xff end
+		local ok, body = pcall(Session.build_equipment_change_body, {
+			client_id = state.mob_index,
+			equipment_slot = equipment_slot,
+			inventory_slot = inventory_slot,
+			timestamp = os.time() % 4294967296,
+		})
+		if not ok then
+			post_ui("world_equipment_rejected", { text = "Não foi possível preparar a troca de arma." })
+			return
+		end
+		state.equipment_pending = true
+		state.equipment_pending_elapsed = 0
+		state.pending_equipment_slot = equipment_slot
+		post_ui("world_equipment_pending")
+		if not send_next_session_body(self, body, "troca de equipamento") then
+			return fail_live_session(self, "Não foi possível enviar a troca ao servidor local.", "world")
+		end
+	elseif message_id == hash("world_mount_action") then
+		local state = self.live_session
+		if not state or state.phase ~= "in-world" or state.mount_pending then
+			post_ui("world_mount_rejected", { text = "Aguarde a confirmação da ação atual." })
+			return
+		end
+		local action_ids = { list = 0, incubate = 1, feed = 2, evolve = 3, select = 4, ride = 5, dismount = 6 }
+		local action_id = action_ids[message.action]
+		if action_id == nil then
+			post_ui("world_mount_rejected", { text = "Ação de montaria inválida." })
+			return
+		end
+		local ok, body = pcall(Session.build_mount_action_body, {
+			client_id = state.mob_index,
+			timestamp = os.time() % 4294967296,
+			action = message.action,
+			mount_id = message.mount_id,
+			inventory_slot = message.inventory_slot,
+		})
+		if not ok then
+			post_ui("world_mount_rejected", { text = "Selecione uma montaria e um material válidos." })
+			return
+		end
+		state.mount_pending = true
+		state.mount_pending_elapsed = 0
+		state.pending_mount_action = action_id
+		post_ui("world_mount_pending", { action = message.action })
+		if not send_next_session_body(self, body, "ação de montaria") then
+			return fail_live_session(self, "Não foi possível enviar a ação da montaria ao servidor local.", "world")
+		end
+	elseif message_id == hash("world_refine_item") then
+		local state = self.live_session
+		if not state or state.phase ~= "in-world" or state.refinement_pending then
+			post_ui("world_refinement_rejected", { text = "Aguarde o refinamento atual." })
+			return
+		end
+		local ok, body = pcall(Session.build_refinement_action_body, {
+			client_id = state.mob_index,
+			timestamp = os.time() % 4294967296,
+			inventory_slot = message.inventory_slot,
+			use_divine_dust = message.use_divine_dust == true,
+			request_id = next_advancement_request_id(self),
+		})
+		if not ok then
+			post_ui("world_refinement_rejected", { text = "Selecione um equipamento itemizado válido." })
+			return
+		end
+		state.refinement_pending = true
+		state.refinement_pending_elapsed = 0
+		post_ui("world_refinement_pending")
+		if not send_next_session_body(self, body, "refinamento de equipamento") then
+			return fail_live_session(self, "Não foi possível enviar o refinamento ao servidor local.", "world")
+		end
+	elseif message_id == hash("world_stage_ritual") then
+		local state = self.live_session
+		if not state or state.phase ~= "in-world" or state.stage_pending then
+			post_ui("world_stage_rejected", { text = "Aguarde o ritual atual." })
+			return
+		end
+		local ok, body = pcall(Session.build_stage_ritual_body, {
+			client_id = state.mob_index,
+			timestamp = os.time() % 4294967296,
+			request_id = next_advancement_request_id(self),
+		})
+		if not ok then
+			post_ui("world_stage_rejected", { text = "Não foi possível preparar o ritual." })
+			return
+		end
+		state.stage_pending = true
+		state.stage_pending_elapsed = 0
+		post_ui("world_stage_pending")
+		if not send_next_session_body(self, body, "ritual de estágio") then
+			return fail_live_session(self, "Não foi possível enviar o ritual ao servidor local.", "world")
+		end
+	elseif message_id == hash("world_skill_cast") then
+		local state = self.live_session
+		local target = state and state.selected_target
+		local skill_id = message.skill_id
+		local skill = SKILL_DEFINITIONS[skill_id]
+		local isSelfTargetEffect = skill and (skill.effect_type == "heal" or skill.effect_type == "defense")
+		if not state or state.phase ~= "in-world" or not skill or skill.class_id ~= state.class_id or state.skill_pending or
+			(not isSelfTargetEffect and (not target or target.current_hp <= 0)) then
+			post_ui("world_skill_rejected", { text = "Escolha uma habilidade da sua classe e um alvo vivo." })
+			return
+		end
+		if not state.learned_skills[skill_id] then
+			post_ui("world_skill_rejected", { text = "Aprenda " .. skill.name .. " na trilha antes de conjurar." })
+			return
+		end
+		if (state.skill_cooldown_remaining[skill_id] or 0) > 0 then
+			post_ui("world_skill_rejected", { text = skill.name .. " ainda está em recarga." })
+			return
+		end
+		local target_id = state.mob_index
+		local target_position = state.world_position
+		if not isSelfTargetEffect then
+			local range = math.max(math.abs(target.position.x - state.world_position.x), math.abs(target.position.y - state.world_position.y))
+			if range > skill.range_tiles then
+				post_ui("world_skill_rejected", { text = "Alvo fora do alcance de " .. skill.name .. " (" .. skill.range_tiles .. " tiles)." })
+				return
+			end
+			target_id = target.entity_id
+			target_position = target.position
+		end
+		local ok, body = pcall(Session.build_single_target_skill_attack_body, {
+			client_id = state.mob_index,
+			timestamp = os.time() % 4294967296,
+			skill_id = skill_id,
+			target_mob_index = target_id,
+			source_position = state.world_position,
+			target_position = target_position,
+		})
+		if not ok then
+			post_ui("world_skill_rejected", { text = "Não foi possível preparar a habilidade." })
+			return
+		end
+		state.skill_pending = true
+		state.pending_skill_id = skill_id
+		state.pending_skill_target = target_id
+		state.skill_pending_elapsed = 0
+		state.skill_cooldown_remaining[skill_id] = skill.cooldown
+		if not send_next_session_body(self, body, skill.name) then
+			return fail_live_session(self, "Não foi possível enviar a habilidade ao servidor local.", "world")
+		end
+		post_ui("world_skill_pending", { skill_name = skill.name, mana_cost = skill.mana })
+	elseif message_id == hash("world_skill_learn") then
+		local state = self.live_session
+		local skill_id = message.skill_id
+		local skill = SKILL_DEFINITIONS[skill_id]
+		if not state or state.phase ~= "in-world" or not skill or skill.class_id ~= state.class_id then
+			post_ui("world_skill_learning_rejected", { text = "Esta habilidade não pertence à classe selecionada." })
+			return
+		end
+		if state.skill_learning_pending or state.learned_skills[skill_id] then return end
+		local ok, body = pcall(Session.build_skill_learn_body, {
+			client_id = state.mob_index,
+			timestamp = os.time() % 4294967296,
+			skill_id = skill_id,
+		})
+		if not ok then
+			post_ui("world_skill_learning_rejected", { text = "Não foi possível preparar o aprendizado." })
+			return
+		end
+		state.skill_learning_pending = true
+		state.skill_learning_elapsed = 0
+		state.pending_skill_id = skill_id
+		if not send_next_session_body(self, body, "aprendizado de " .. skill.name) then
+			return fail_live_session(self, "Não foi possível enviar o aprendizado ao servidor local.", "world")
+		end
+		post_ui("world_skill_learning_pending", { skill_name = skill.name })
+	elseif message_id == hash("world_attribute_allocate") then
+		local state = self.live_session
+		if not state or state.phase ~= "in-world" or state.attribute_pending then
+			post_ui("world_attribute_rejected", { text = "Aguarde a confirmação da ficha." })
+			return
+		end
+		local ok, body = pcall(Session.build_attribute_allocation_body, {
+			client_id = state.mob_index,
+			timestamp = os.time() % 4294967296,
+			attribute_id = message.attribute_id,
+		})
+		if not ok then
+			post_ui("world_attribute_rejected", { text = "Atributo inválido." })
+			return
+		end
+		state.attribute_pending = true
+		state.attribute_pending_elapsed = 0
+		state.pending_attribute_id = message.attribute_id
+		if not send_next_session_body(self, body, "distribuição de atributo") then
+			return fail_live_session(self, "Não foi possível enviar os atributos ao servidor local.", "world")
+		end
+		post_ui("world_attribute_pending", { attribute_id = message.attribute_id })
+	elseif message_id == hash("ui_cancel_session") then
+		msg.post("/transknight#movement", "world_reset")
+		self.live_session = nil
+		self.session_test = nil
+		close_socket(self)
+		report_status("Sessão local encerrada pelo jogador.")
+	end
+end
+
+function final(self)
+	close_socket(self)
+end

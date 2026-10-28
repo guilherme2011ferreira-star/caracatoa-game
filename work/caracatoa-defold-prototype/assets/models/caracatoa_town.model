@@ -1,0 +1,130 @@
+mesh: "/assets/models/caracatoa_town.glb"
+name: "caracatoa_town"
+materials {
+  name: "TownStone"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/town-textures/stone.png"
+  }
+}
+materials {
+  name: "TownTrim"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/town-textures/trim.png"
+  }
+}
+materials {
+  name: "TownShadow"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/town-textures/shadow.png"
+  }
+}
+materials {
+  name: "TownPlaster"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/town-textures/plaster.png"
+  }
+}
+materials {
+  name: "TownTimber"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/town-textures/timber.png"
+  }
+}
+materials {
+  name: "TownRoofRed"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/town-textures/roof-red.png"
+  }
+}
+materials {
+  name: "TownRoofBlue"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/town-textures/roof-blue.png"
+  }
+}
+materials {
+  name: "TownGold"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/town-textures/gold.png"
+  }
+}
+materials {
+  name: "TownBanner"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/town-textures/banner.png"
+  }
+}
+materials {
+  name: "TownBlueBanner"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/town-textures/blue-banner.png"
+  }
+}
+materials {
+  name: "TownGlass"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/town-textures/glass.png"
+  }
+}
+materials {
+  name: "TownCobble"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/town-textures/cobble.png"
+  }
+}
+materials {
+  name: "TownGrass"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/town-textures/grass.png"
+  }
+}
+materials {
+  name: "TownWater"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/town-textures/water.png"
+  }
+}
+materials {
+  name: "TownLeaf"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/town-textures/leaf.png"
+  }
+}
+materials {
+  name: "TownTorch"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/town-textures/torch.png"
+  }
+}

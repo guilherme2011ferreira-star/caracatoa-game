@@ -1,0 +1,94 @@
+mesh: "/assets/models/quaternius/class-gear/beastmaster.gltf"
+name: "caracatoa_beastmaster"
+skeleton: "/assets/models/quaternius/class-gear/beastmaster.gltf"
+animations: "/assets/models/quaternius/animations/CaracatoaHumanoid.animationset"
+default_animation: "Idle_Loop"
+materials {
+  name: "MI_Peasant"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/outfits/T_Peasant_BaseColor.png"
+  }
+}
+materials {
+  name: "MI_Regular_Male"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/outfits/T_Regular_Male_Dark_BaseColor.png"
+  }
+}
+materials {
+  name: "Caracatoa_Face_male"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/heads/source/T_Superhero_Male_Dark.png"
+  }
+}
+materials {
+  name: "Caracatoa_Eyes"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/heads/source/T_Eye_Brown.png"
+  }
+}
+materials {
+  name: "Caracatoa_Hair_beastmaster"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/heads/beastmaster-hair.png"
+  }
+}
+materials {
+  name: "Caracatoa_Leather_Light"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/palettes/Caracatoa_Leather_Light.png"
+  }
+}
+materials {
+  name: "Caracatoa_Green"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/palettes/Caracatoa_Green.png"
+  }
+}
+materials {
+  name: "Caracatoa_Leather"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/palettes/Caracatoa_Leather.png"
+  }
+}
+materials {
+  name: "Caracatoa_Green_Light"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/palettes/Caracatoa_Green_Light.png"
+  }
+}
+materials {
+  name: "Caracatoa_Steel"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/palettes/Caracatoa_Steel.png"
+  }
+}
+materials {
+  name: "Caracatoa_Gold"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/palettes/Caracatoa_Gold.png"
+  }
+}
+create_go_bones: false

@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "kind": "caracatoa-navigation",
+  "coordinateSystem": "world-grid-4096-v1",
+  "entries": [
+    {
+      "mapId": 1,
+      "source": "bastiao-do-amanhecer-v2",
+      "walkableBounds": [
+        101,
+        101,
+        155,
+        155
+      ],
+      "blockedZones": [
+        {
+          "id": "portao-astral-fechado",
+          "bounds": [
+            121,
+            155,
+            135,
+            155
+          ]
+        },
+        {
+          "id": "muralha-oeste",
+          "bounds": [
+            105,
+            111,
+            109,
+            148
+          ]
+        },
+        {
+          "id": "muralha-leste",
+          "bounds": [
+            147,
+            111,
+            151,
+            148
+          ]
+        },
+        {
+          "id": "casa-mercado-oeste",
+          "bounds": [
+            111,
+            132,
+            120,
+            141
+          ]
+        },
+        {
+          "id": "casa-mercado-leste",
+          "bounds": [
+            136,
+            132,
+            145,
+            141
+          ]
+        },
+        {
+          "id": "casa-patio-oeste",
+          "bounds": [
+            109,
+            123,
+            117,
+            131
+          ]
+        },
+        {
+          "id": "casa-patio-leste",
+          "bounds": [
+            139,
+            123,
+            147,
+            131
+          ]
+        },
+        {
+          "id": "casa-altar-oeste",
+          "bounds": [
+            113,
+            112,
+            121,
+            120
+          ]
+        },
+        {
+          "id": "casa-altar-leste",
+          "bounds": [
+            135,
+            112,
+            143,
+            120
+          ]
+        },
+        {
+          "id": "fonte-da-praca",
+          "bounds": [
+            141,
+            118,
+            148,
+            125
+          ]
+        },
+        {
+          "id": "banca-rubra",
+          "bounds": [
+            118,
+            122,
+            124,
+            127
+          ]
+        },
+        {
+          "id": "banca-azul",
+          "bounds": [
+            132,
+            122,
+            138,
+            127
+          ]
+        },
+        {
+          "id": "arvore-norte-oeste",
+          "bounds": [
+            107,
+            124,
+            109,
+            126
+          ]
+        },
+        {
+          "id": "arvore-norte-leste",
+          "bounds": [
+            147,
+            124,
+            149,
+            126
+          ]
+        },
+        {
+          "id": "arvore-altar-oeste",
+          "bounds": [
+            118,
+            115,
+            120,
+            117
+          ]
+        },
+        {
+          "id": "arvore-altar-leste",
+          "bounds": [
+            136,
+            115,
+            138,
+            117
+          ]
+        },
+        {
+          "id": "arvore-sul-oeste",
+          "bounds": [
+            107,
+            138,
+            109,
+            140
+          ]
+        },
+        {
+          "id": "arvore-sul-leste",
+          "bounds": [
+            147,
+            138,
+            149,
+            140
+          ]
+        },
+        {
+          "id": "lanterna-praca-oeste",
+          "bounds": [
+            122,
+            123,
+            124,
+            125
+          ]
+        },
+        {
+          "id": "lanterna-praca-leste",
+          "bounds": [
+            132,
+            123,
+            134,
+            125
+          ]
+        },
+        {
+          "id": "lanterna-muralha-oeste",
+          "bounds": [
+            108,
+            131,
+            111,
+            133
+          ]
+        },
+        {
+          "id": "lanterna-muralha-leste",
+          "bounds": [
+            145,
+            131,
+            148,
+            133
+          ]
+        }
+      ]
+    }
+  ]
+}

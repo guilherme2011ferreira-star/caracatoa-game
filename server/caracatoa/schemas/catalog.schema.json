@@ -1,0 +1,292 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://caracatoa.local/schemas/catalog.schema.json",
+  "title": "Caracatoa content catalog",
+  "type": "object",
+  "required": ["schemaVersion", "kind", "entries"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": {
+      "enum": ["items", "characters", "monsters", "classes", "skills"]
+    },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "items" } } },
+      "then": {
+        "properties": {
+          "entries": {
+            "items": {
+              "properties": {
+                "properties": { "$ref": "#/$defs/itemProperties" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "monsters" } } },
+      "then": {
+        "properties": {
+          "entries": {
+            "items": {
+              "properties": {
+                "name": {
+                  "maxLength": 15,
+                  "pattern": "^[A-Za-z0-9 _-]+$"
+                },
+                "properties": { "$ref": "#/$defs/monsterProperties" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "classes" } } },
+      "then": {
+        "properties": {
+          "entries": {
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+              "properties": {
+                "id": { "enum": ["0", "1", "2", "3"] },
+                "name": {
+                  "enum": ["TransKnight", "Foema", "BeastMaster", "Huntress"]
+                },
+                "properties": {
+                  "required": ["startingStats"],
+                  "properties": {
+                    "startingStats": { "$ref": "#/$defs/startingStats" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "skills" } } },
+      "then": {
+        "properties": {
+          "entries": {
+            "items": {
+              "properties": {
+                "properties": { "$ref": "#/$defs/skillProperties" }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "required": ["id", "name", "description", "enabled", "properties"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "description": { "type": "string", "maxLength": 2048 },
+        "enabled": { "type": "boolean" },
+        "properties": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "itemProperties": {
+      "type": "object",
+      "required": [
+        "clientItemId",
+        "stackCount",
+        "field04",
+        "effects",
+        "starter"
+      ],
+      "properties": {
+        "clientItemId": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "stackCount": { "type": "integer", "minimum": 1, "maximum": 500 },
+        "field04": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "effects": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "$ref": "#/$defs/itemEffect" }
+        },
+        "starter": { "type": "boolean" },
+        "combatEffect": { "$ref": "#/$defs/itemCombatEffect" },
+        "useEffect": { "$ref": "#/$defs/itemUseEffect" },
+        "equipment": { "$ref": "#/$defs/itemEquipment" }
+      },
+      "additionalProperties": false
+    },
+    "itemCombatEffect": {
+      "type": "object",
+      "required": ["kind", "amount"],
+      "properties": {
+        "kind": { "const": "flat-attack-damage" },
+        "amount": { "type": "integer", "minimum": 1, "maximum": 1000 }
+      },
+      "additionalProperties": false
+    },
+    "itemUseEffect": {
+      "type": "object",
+      "required": ["kind", "amount"],
+      "properties": {
+        "kind": { "const": "next-basic-attack-damage" },
+        "amount": { "type": "integer", "minimum": 1, "maximum": 1000 }
+      },
+      "additionalProperties": false
+    },
+    "itemEquipment": {
+      "type": "object",
+      "required": ["slot", "attackDamageBonus", "defenseBonus", "allowedClassIds"],
+      "properties": {
+        "slot": { "enum": ["weapon", "head", "chest", "legs", "feet", "accessory"] },
+        "attackDamageBonus": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "defenseBonus": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "allowedClassIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": { "type": "integer", "minimum": 0, "maximum": 3 }
+        }
+      },
+      "additionalProperties": false
+    },
+    "itemEffect": {
+      "type": "object",
+      "required": ["index", "value"],
+      "properties": {
+        "index": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "value": { "type": "integer", "minimum": 0, "maximum": 255 }
+      },
+      "additionalProperties": false
+    },
+    "monsterProperties": {
+      "type": "object",
+      "required": [
+        "clientEntityId",
+        "equipModelIds",
+        "spawnPosition",
+        "level",
+        "startingStats"
+      ],
+      "properties": {
+        "clientEntityId": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 65535
+        },
+        "equipModelIds": {
+          "type": "array",
+          "minItems": 16,
+          "maxItems": 16,
+          "items": { "type": "integer", "minimum": 0, "maximum": 65535 }
+        },
+        "spawnPosition": {
+          "type": "object",
+          "required": ["x", "y"],
+          "properties": {
+            "x": { "type": "integer", "minimum": -32768, "maximum": 32767 },
+            "y": { "type": "integer", "minimum": -32768, "maximum": 32767 }
+          },
+          "additionalProperties": false
+        },
+        "level": { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+        "startingStats": { "$ref": "#/$defs/startingStats" }
+      },
+      "additionalProperties": false
+    },
+    "skillProperties": {
+      "type": "object",
+      "required": [
+        "branchId",
+        "scalingAttribute",
+        "effectType",
+        "clientSkillId",
+        "skillPointCost",
+        "requiredLevel",
+        "prerequisites",
+        "damageBonus",
+        "healAmount",
+        "defenseBonus",
+        "durationMs",
+        "manaCost",
+        "cooldownMs",
+        "rangeTiles"
+      ],
+      "properties": {
+        "branchId": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "scalingAttribute": { "enum": ["str", "int", "dex", "con"] },
+        "effectType": { "enum": ["damage", "heal", "defense"] },
+        "clientSkillId": { "type": "integer", "minimum": 1, "maximum": 95 },
+        "skillPointCost": { "type": "integer", "minimum": 1, "maximum": 1000 },
+        "requiredLevel": { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+        "prerequisites": {
+          "type": "array",
+          "maxItems": 24,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" }
+        },
+        "damageBonus": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "healAmount": { "type": "integer", "minimum": 0, "maximum": 2147483647 },
+        "defenseBonus": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "durationMs": { "type": "integer", "minimum": 0, "maximum": 120000 },
+        "manaCost": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "cooldownMs": { "type": "integer", "minimum": 1000, "maximum": 120000 },
+        "rangeTiles": { "type": "integer", "minimum": 1, "maximum": 12 }
+      },
+      "additionalProperties": false
+    },
+    "startingStats": {
+      "type": "object",
+      "required": [
+        "defense",
+        "damage",
+        "merchant",
+        "movementSpeed",
+        "direction",
+        "chaosRate",
+        "maxHp",
+        "maxMp",
+        "currentHp",
+        "currentMp",
+        "str",
+        "int",
+        "dex",
+        "con"
+      ],
+      "properties": {
+        "defense": { "type": "integer", "minimum": 0, "maximum": 2147483647 },
+        "damage": { "type": "integer", "minimum": 0, "maximum": 2147483647 },
+        "merchant": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "movementSpeed": { "type": "integer", "minimum": 1, "maximum": 7 },
+        "direction": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "chaosRate": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "maxHp": { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+        "maxMp": { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+        "currentHp": { "type": "integer", "minimum": 0, "maximum": 2147483647 },
+        "currentMp": { "type": "integer", "minimum": 0, "maximum": 2147483647 },
+        "str": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "int": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "dex": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "con": { "type": "integer", "minimum": 0, "maximum": 65535 }
+      },
+      "additionalProperties": false
+    }
+  }
+}

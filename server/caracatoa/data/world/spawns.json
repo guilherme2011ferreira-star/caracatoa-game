@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "kind": "caracatoa-spawns",
+  "entries": [
+    { "spawnId": 1001, "mapId": 1, "monsterId": "golem-pedra", "name": "Golem de Pedra", "level": 1, "at": [130, 128], "radius": 0, "respawnMs": 60000, "ai": "aggressive", "attackType": "physical", "tier": "common", "status": "live" },
+    { "spawnId": 1002, "mapId": 1, "monsterId": "vigia-de-argila", "name": "Vigia de Argila", "level": 12, "at": [190, 180], "radius": 8, "respawnMs": 45000, "ai": "passive", "attackType": "physical", "tier": "common", "status": "planned" },
+    { "spawnId": 2001, "mapId": 2, "monsterId": "lobo-cinzento", "name": "Lobo Cinzento", "level": 18, "at": [302, 82], "radius": 10, "respawnMs": 35000, "ai": "aggressive", "attackType": "physical", "tier": "common", "status": "planned" },
+    { "spawnId": 2002, "mapId": 2, "monsterId": "bandido-da-ponte", "name": "Bandido da Ponte", "level": 42, "at": [450, 185], "radius": 7, "respawnMs": 50000, "ai": "aggressive", "attackType": "physical", "tier": "elite", "status": "planned" },
+    { "spawnId": 3001, "mapId": 3, "monsterId": "escorpiao-de-arenito", "name": "Escorpião de Arenito", "level": 55, "at": [560, 78], "radius": 9, "respawnMs": 40000, "ai": "passive", "attackType": "physical", "tier": "common", "status": "planned" },
+    { "spawnId": 3002, "mapId": 3, "monsterId": "sentinela-solar", "name": "Sentinela Solar", "level": 88, "at": [710, 178], "radius": 6, "respawnMs": 180000, "ai": "aggressive", "attackType": "magic", "tier": "elite", "status": "planned" },
+    { "spawnId": 4001, "mapId": 4, "monsterId": "javali-das-raizes", "name": "Javali das Raízes", "level": 94, "at": [817, 72], "radius": 8, "respawnMs": 45000, "ai": "passive", "attackType": "physical", "tier": "common", "status": "planned" },
+    { "spawnId": 4002, "mapId": 4, "monsterId": "espirito-do-teixo", "name": "Espírito do Teixo", "level": 126, "at": [971, 178], "radius": 6, "respawnMs": 100000, "ai": "aggressive", "attackType": "magic", "tier": "elite", "status": "planned" },
+    { "spawnId": 5001, "mapId": 5, "monsterId": "guardiao-do-baluarte", "name": "Guardião do Baluarte", "level": 138, "at": [1078, 75], "radius": 6, "respawnMs": 90000, "ai": "aggressive", "attackType": "physical", "tier": "elite", "status": "planned" },
+    { "spawnId": 5002, "mapId": 5, "monsterId": "senhor-das-correntes", "name": "Senhor das Correntes", "level": 178, "at": [1215, 185], "radius": 3, "respawnMs": 1800000, "ai": "aggressive", "attackType": "area", "tier": "boss", "status": "planned" },
+    { "spawnId": 6001, "mapId": 6, "monsterId": "fentris-da-neve", "name": "Fentris da Neve", "level": 172, "at": [1336, 76], "radius": 10, "respawnMs": 90000, "ai": "aggressive", "attackType": "physical", "tier": "common", "status": "planned" },
+    { "spawnId": 6002, "mapId": 6, "monsterId": "colosso-do-gelo", "name": "Colosso do Gelo", "level": 218, "at": [1488, 182], "radius": 4, "respawnMs": 240000, "ai": "aggressive", "attackType": "area", "tier": "elite", "status": "planned" },
+    { "spawnId": 7001, "mapId": 7, "monsterId": "errante-da-cripta", "name": "Errante da Cripta", "level": 220, "at": [1590, 81], "radius": 8, "respawnMs": 60000, "ai": "aggressive", "attackType": "physical", "tier": "common", "status": "planned" },
+    { "spawnId": 7002, "mapId": 7, "monsterId": "sacerdotisa-velada", "name": "Sacerdotisa Velada", "level": 268, "at": [1732, 190], "radius": 5, "respawnMs": 210000, "ai": "aggressive", "attackType": "magic", "tier": "elite", "status": "planned" },
+    { "spawnId": 8001, "mapId": 8, "monsterId": "imp-da-escoria", "name": "Imp da Escória", "level": 266, "at": [1844, 76], "radius": 9, "respawnMs": 55000, "ai": "aggressive", "attackType": "magic", "tier": "common", "status": "planned" },
+    { "spawnId": 8002, "mapId": 8, "monsterId": "regente-da-fenda", "name": "Regente da Fenda", "level": 328, "at": [1988, 184], "radius": 4, "respawnMs": 2700000, "ai": "aggressive", "attackType": "area", "tier": "boss", "status": "planned" },
+    { "spawnId": 9001, "mapId": 9, "monsterId": "eco-do-desafio", "name": "Eco do Desafio", "level": 292, "at": [2100, 72], "radius": 6, "respawnMs": 110000, "ai": "passive", "attackType": "physical", "tier": "common", "status": "planned" },
+    { "spawnId": 9002, "mapId": 9, "monsterId": "mestre-das-provas", "name": "Mestre das Provas", "level": 365, "at": [2248, 188], "radius": 3, "respawnMs": 3600000, "ai": "aggressive", "attackType": "area", "tier": "boss", "status": "planned" },
+    { "spawnId": 10001, "mapId": 10, "monsterId": "espectro-do-sonho", "name": "Espectro do Sonho", "level": 354, "at": [2358, 73], "radius": 8, "respawnMs": 100000, "ai": "aggressive", "attackType": "magic", "tier": "common", "status": "planned" },
+    { "spawnId": 10002, "mapId": 10, "monsterId": "arconte-fraturado", "name": "Arconte Fraturado", "level": 400, "at": [2502, 186], "radius": 2, "respawnMs": 5400000, "ai": "aggressive", "attackType": "area", "tier": "boss", "status": "planned" }
+  ]
+}

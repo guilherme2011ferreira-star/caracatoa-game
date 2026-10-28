@@ -1,0 +1,7 @@
+font: "/assets/ui/fonts/Cinzel-Variable.ttf"
+material: "/builtins/fonts/font-df.material"
+size: 22
+antialias: 1
+alpha: 1
+output_format: TYPE_DISTANCE_FIELD
+all_chars: true

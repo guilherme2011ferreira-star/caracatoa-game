@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "kind": "caracatoa-town-layout",
+  "layoutRevision": "bastiao-do-amanhecer-v2",
+  "mapId": 1,
+  "sceneToWorld": {
+    "origin": [128, 128],
+    "tileSize": 1,
+    "sceneXToWorldX": 1,
+    "sceneZToWorldY": -1
+  },
+  "terrain": {
+    "foundation": { "center": [0, -2], "size": [54, 58], "y": -0.52, "height": 0.38, "material": "TownGrass" },
+    "paving": { "center": [0, -2], "size": [46, 53], "y": -0.16, "height": 0.16, "material": "TownCobble" },
+    "ceremonialRoute": {
+      "center": [0, -1],
+      "gold": { "size": [5.3, 29], "y": 0.005, "height": 0.025 },
+      "cloth": { "size": [4.8, 28.5], "y": 0.032, "height": 0.035 },
+      "rails": { "offsetX": 2.55, "width": 0.16, "depth": 29, "y": 0.005, "height": 0.045 }
+    }
+  },
+  "fountain": {
+    "id": "fonte-da-praca",
+    "center": [16.5, 6.7],
+    "size": [5.4, 5.4]
+  },
+  "houses": [
+    { "id": "casa-mercado-oeste", "center": [-12.3, -8.2], "width": 5.8, "depth": 5.8, "height": 4.3, "roofMaterial": "TownRoofRed" },
+    { "id": "casa-mercado-leste", "center": [12.3, -8.2], "width": 5.8, "depth": 5.8, "height": 4.3, "roofMaterial": "TownRoofBlue" },
+    { "id": "casa-patio-oeste", "center": [-15.1, 1.2], "width": 5.2, "depth": 5.4, "height": 3.8, "roofMaterial": "TownRoofBlue" },
+    { "id": "casa-patio-leste", "center": [15.1, 1.2], "width": 5.2, "depth": 5.4, "height": 3.8, "roofMaterial": "TownRoofRed" },
+    { "id": "casa-altar-oeste", "center": [-11.1, 11.8], "width": 5.2, "depth": 4.8, "height": 3.7, "roofMaterial": "TownRoofRed" },
+    { "id": "casa-altar-leste", "center": [11.1, 11.8], "width": 5.2, "depth": 4.8, "height": 3.7, "roofMaterial": "TownRoofBlue" }
+  ],
+  "marketStalls": [
+    { "id": "banca-rubra", "center": [-7.1, 3.5], "counterSize": [4.5, 3.4], "postLineZ": 2.2, "postOffsets": [-1.75, 1.75], "stripeStep": 0.78, "bannerMaterial": "TownBanner" },
+    { "id": "banca-azul", "center": [7.1, 3.5], "counterSize": [4.5, 3.4], "postLineZ": 2.2, "postOffsets": [-1.75, 1.75], "stripeStep": 0.78, "bannerMaterial": "TownBlueBanner" }
+  ],
+  "lanterns": [
+    { "id": "lanterna-praca-oeste", "center": [-5.4, 3.8], "baseRadius": 0.08 },
+    { "id": "lanterna-praca-leste", "center": [5.4, 3.8], "baseRadius": 0.08 },
+    { "id": "lanterna-muralha-oeste", "center": [-18.5, -4], "baseRadius": 0.08 },
+    { "id": "lanterna-muralha-leste", "center": [18.5, -4], "baseRadius": 0.08 }
+  ],
+  "trees": [
+    { "id": "arvore-norte-oeste", "center": [-20, 3], "height": 5.1, "trunkRadius": 0.38 },
+    { "id": "arvore-norte-leste", "center": [20, 3], "height": 5.1, "trunkRadius": 0.38 },
+    { "id": "arvore-altar-oeste", "center": [-8.9, 12], "height": 5.1, "trunkRadius": 0.38 },
+    { "id": "arvore-altar-leste", "center": [8.9, 12], "height": 5.1, "trunkRadius": 0.38 },
+    { "id": "arvore-sul-oeste", "center": [-20, -11], "height": 5.1, "trunkRadius": 0.38 },
+    { "id": "arvore-sul-leste", "center": [20, -11], "height": 5.1, "trunkRadius": 0.38 }
+  ],
+  "perimeterWalls": [
+    { "id": "muralha-oeste", "center": [-21, -1.7], "width": 1.4, "depth": 35, "baseY": 0.08, "height": 3.1 },
+    { "id": "muralha-leste", "center": [21, -1.7], "width": 1.4, "depth": 35, "baseY": 0.08, "height": 3.1 }
+  ],
+  "wallCrenellations": {
+    "startZ": -18,
+    "stepZ": 2.65,
+    "count": 13,
+    "y": 3,
+    "width": 1.7,
+    "height": 0.62,
+    "depth": 0.9
+  },
+  "landmarks": {
+    "astralGate": {
+      "id": "portao-astral-fechado",
+      "instanceSceneXZ": [0, -25],
+      "uniformScale": 0.58,
+      "closed": true,
+      "wallFootprintLocal": {
+        "center": [0, -5],
+        "size": [24, 2.9]
+      }
+    }
+  },
+  "navigation": {
+    "footprintPadding": 0.45,
+    "worldBoundsSource": "terrain.foundation",
+    "clipBeyondClosedAstralGate": true,
+    "houseFoundationExpansion": 0.26,
+    "blockMarketCounters": true,
+    "blockTreeTrunks": true,
+    "blockLanternBases": true
+  }
+}

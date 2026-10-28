@@ -1,0 +1,59 @@
+mesh: "/assets/models/transknight.glb"
+name: "caracatoa_transknight"
+materials {
+  name: "bronze"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/transknight_bronze.png"
+  }
+}
+materials {
+  name: "bronzeLight"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/transknight_bronzeLight.png"
+  }
+}
+materials {
+  name: "darkSteel"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/transknight_darkSteel.png"
+  }
+}
+materials {
+  name: "gold"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/transknight_gold.png"
+  }
+}
+materials {
+  name: "leather"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/transknight_leather.png"
+  }
+}
+materials {
+  name: "skin"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/transknight_skin.png"
+  }
+}
+materials {
+  name: "steel"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/transknight_steel.png"
+  }
+}
+create_go_bones: false

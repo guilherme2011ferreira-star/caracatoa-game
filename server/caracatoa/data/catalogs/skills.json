@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "kind": "skills",
+  "entries": [
+    {
+      "id": "golpe-da-forja",
+      "name": "Golpe da Forja",
+      "description": "Ataque pesado do TransKnight, de alcance corpo a corpo.",
+      "enabled": true,
+      "properties": {
+        "clientSkillId": 1,
+        "branchId": "trans",
+        "scalingAttribute": "str",
+        "effectType": "damage",
+        "skillPointCost": 1,
+        "requiredLevel": 1,
+        "prerequisites": [],
+        "damageBonus": 10,
+        "healAmount": 0,
+        "manaCost": 5,
+        "cooldownMs": 3000,
+        "rangeTiles": 1,
+        "defenseBonus": 0,
+        "durationMs": 0
+      }
+    },
+    {
+      "id": "ruptura-de-aco",
+      "name": "Ruptura de Aço",
+      "description": "Golpe físico concentrado do ramo Trans do TransKnight.",
+      "enabled": true,
+      "properties": {
+        "clientSkillId": 2,
+        "branchId": "trans",
+        "scalingAttribute": "str",
+        "effectType": "damage",
+        "skillPointCost": 1,
+        "requiredLevel": 1,
+        "prerequisites": [],
+        "damageBonus": 14,
+        "healAmount": 0,
+        "manaCost": 8,
+        "cooldownMs": 4000,
+        "rangeTiles": 1,
+        "defenseBonus": 0,
+        "durationMs": 0
+      }
+    },
+    {
+      "id": "guarda-inabalavel",
+      "name": "Guarda Inabalável",
+      "description": "Assume uma postura firme que converte Constituição em defesa temporária.",
+      "enabled": true,
+      "properties": {
+        "clientSkillId": 3,
+        "branchId": "confianca",
+        "scalingAttribute": "con",
+        "effectType": "defense",
+        "skillPointCost": 1,
+        "requiredLevel": 1,
+        "prerequisites": [],
+        "damageBonus": 0,
+        "healAmount": 0,
+        "defenseBonus": 20,
+        "durationMs": 8000,
+        "manaCost": 12,
+        "cooldownMs": 12000,
+        "rangeTiles": 0
+      }
+    },
+    {
+      "id": "caracatoa-corte",
+      "name": "Caracatoa Corte",
+      "description": "Golpe arcano de curto alcance da Foema.",
+      "enabled": true,
+      "properties": {
+        "clientSkillId": 25,
+        "branchId": "magia-negra",
+        "scalingAttribute": "int",
+        "effectType": "damage",
+        "skillPointCost": 1,
+        "requiredLevel": 1,
+        "prerequisites": [],
+        "damageBonus": 6,
+        "healAmount": 0,
+        "manaCost": 7,
+        "cooldownMs": 3000,
+        "rangeTiles": 1,
+        "defenseBonus": 0,
+        "durationMs": 0
+      }
+    },
+    {
+      "id": "caracatoa-impacto-celeste",
+      "name": "Impacto Celeste",
+      "description": "Golpe arcano concentrado de curto alcance para a Foema.",
+      "enabled": true,
+      "properties": {
+        "clientSkillId": 26,
+        "branchId": "magia-negra",
+        "scalingAttribute": "int",
+        "effectType": "damage",
+        "skillPointCost": 1,
+        "requiredLevel": 2,
+        "prerequisites": [
+          "caracatoa-corte"
+        ],
+        "damageBonus": 13,
+        "healAmount": 0,
+        "manaCost": 12,
+        "cooldownMs": 5000,
+        "rangeTiles": 1,
+        "defenseBonus": 0,
+        "durationMs": 0
+      }
+    },
+    {
+      "id": "luz-de-yetserahi",
+      "name": "Luz de Yetserahi",
+      "description": "Canaliza a força da criação para restaurar a própria vida.",
+      "enabled": true,
+      "properties": {
+        "clientSkillId": 27,
+        "branchId": "magia-branca",
+        "scalingAttribute": "int",
+        "effectType": "heal",
+        "skillPointCost": 1,
+        "requiredLevel": 1,
+        "prerequisites": [],
+        "damageBonus": 0,
+        "healAmount": 32,
+        "manaCost": 10,
+        "cooldownMs": 5000,
+        "rangeTiles": 0,
+        "defenseBonus": 0,
+        "durationMs": 0
+      }
+    },
+    {
+      "id": "garras-de-cipo",
+      "name": "Garras de Cipó",
+      "description": "Golpe natural de curto alcance do BeastMaster.",
+      "enabled": true,
+      "properties": {
+        "clientSkillId": 49,
+        "branchId": "naturais",
+        "scalingAttribute": "str",
+        "effectType": "damage",
+        "skillPointCost": 1,
+        "requiredLevel": 1,
+        "prerequisites": [],
+        "damageBonus": 9,
+        "healAmount": 0,
+        "manaCost": 8,
+        "cooldownMs": 4000,
+        "rangeTiles": 1,
+        "defenseBonus": 0,
+        "durationMs": 0
+      }
+    },
+    {
+      "id": "flecha-perfurante",
+      "name": "Flecha Perfurante",
+      "description": "Disparo preciso da Huntress com alcance de cinco tiles.",
+      "enabled": true,
+      "properties": {
+        "clientSkillId": 73,
+        "branchId": "captura",
+        "scalingAttribute": "dex",
+        "effectType": "damage",
+        "skillPointCost": 1,
+        "requiredLevel": 1,
+        "prerequisites": [],
+        "damageBonus": 8,
+        "healAmount": 0,
+        "manaCost": 6,
+        "cooldownMs": 3000,
+        "rangeTiles": 5,
+        "defenseBonus": 0,
+        "durationMs": 0
+      }
+    }
+  ]
+}

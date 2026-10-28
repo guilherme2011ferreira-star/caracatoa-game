@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "kind": "mounts",
+  "hungerTickMs": 60000,
+  "feed": { "catalogItemId": "caracatoa-racao-de-campo", "restore": 60 },
+  "dust": {
+    "ori": "caracatoa-poeira-de-oriharucon",
+    "lact": "caracatoa-fragmento-de-lactolerium"
+  },
+  "entries": [
+    {
+      "id": "equus",
+      "name": "Equus da Vigília",
+      "tier": "basic",
+      "requiredLevel": 1,
+      "incubationCritical": 3,
+      "incubationWaitMs": 60000,
+      "maxHunger": 180,
+      "maxVitality": 100,
+      "bonuses": { "hp": 20, "physicalAttack": 0, "magicAttack": 0, "defense": 2, "moveSpeedBps": 250, "absorptionBps": 0 }
+    },
+    {
+      "id": "tigre",
+      "name": "Tigre das Cinzas",
+      "tier": "basic",
+      "requiredLevel": 25,
+      "incubationCritical": 4,
+      "incubationWaitMs": 60000,
+      "maxHunger": 200,
+      "maxVitality": 100,
+      "bonuses": { "hp": 25, "physicalAttack": 5, "magicAttack": 0, "defense": 1, "moveSpeedBps": 325, "absorptionBps": 0 }
+    },
+    {
+      "id": "lobo",
+      "name": "Lobo do Desfiladeiro",
+      "tier": "basic",
+      "requiredLevel": 30,
+      "incubationCritical": 4,
+      "incubationWaitMs": 60000,
+      "maxHunger": 200,
+      "maxVitality": 100,
+      "bonuses": { "hp": 20, "physicalAttack": 3, "magicAttack": 0, "defense": 1, "moveSpeedBps": 400, "absorptionBps": 0 }
+    },
+    {
+      "id": "grifo",
+      "name": "Grifo do Baluarte",
+      "tier": "intermediate",
+      "requiredLevel": 80,
+      "incubationCritical": 6,
+      "incubationWaitMs": 180000,
+      "maxHunger": 280,
+      "maxVitality": 125,
+      "bonuses": { "hp": 70, "physicalAttack": 8, "magicAttack": 5, "defense": 5, "moveSpeedBps": 350, "absorptionBps": 100 }
+    },
+    {
+      "id": "hipogrifo",
+      "name": "Hipogrifo do Véu",
+      "tier": "intermediate",
+      "requiredLevel": 100,
+      "incubationCritical": 7,
+      "incubationWaitMs": 180000,
+      "maxHunger": 300,
+      "maxVitality": 125,
+      "bonuses": { "hp": 80, "physicalAttack": 4, "magicAttack": 10, "defense": 5, "moveSpeedBps": 350, "absorptionBps": 125 }
+    },
+    {
+      "id": "pegaso",
+      "name": "Pégaso da Aurora",
+      "tier": "intermediate",
+      "requiredLevel": 120,
+      "incubationCritical": 7,
+      "incubationWaitMs": 180000,
+      "maxHunger": 300,
+      "maxVitality": 130,
+      "bonuses": { "hp": 100, "physicalAttack": 4, "magicAttack": 8, "defense": 6, "moveSpeedBps": 400, "absorptionBps": 150 }
+    },
+    {
+      "id": "dragao",
+      "name": "Dragão Rubro",
+      "tier": "advanced",
+      "requiredLevel": 220,
+      "incubationCritical": 8,
+      "incubationWaitMs": 300000,
+      "maxHunger": 380,
+      "maxVitality": 150,
+      "bonuses": { "hp": 180, "physicalAttack": 16, "magicAttack": 12, "defense": 12, "moveSpeedBps": 450, "absorptionBps": 200 }
+    },
+    {
+      "id": "fentris",
+      "name": "Fentris do Eclipse",
+      "tier": "advanced",
+      "requiredLevel": 300,
+      "incubationCritical": 9,
+      "incubationWaitMs": 300000,
+      "maxHunger": 420,
+      "maxVitality": 160,
+      "bonuses": { "hp": 240, "physicalAttack": 20, "magicAttack": 18, "defense": 15, "moveSpeedBps": 500, "absorptionBps": 300 }
+    }
+  ]
+}

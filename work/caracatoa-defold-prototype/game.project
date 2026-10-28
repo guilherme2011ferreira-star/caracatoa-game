@@ -1,0 +1,25 @@
+[project]
+title = Caracatoa 3D Preview
+write_log_file = 2
+
+[bootstrap]
+main_collection = /main/main.collectionc
+render = /builtins/render/default.renderc
+
+[display]
+width = 1280
+height = 720
+high_dpi = 1
+samples = 4
+
+[script]
+shared_state = 1
+
+[input]
+game_binding = /input/game.input_bindingc
+
+[render]
+clear_color_red = 0.055
+clear_color_green = 0.080
+clear_color_blue = 0.130
+clear_color_alpha = 1.0

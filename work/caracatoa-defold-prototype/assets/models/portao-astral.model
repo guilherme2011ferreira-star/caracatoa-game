@@ -1,0 +1,114 @@
+mesh: "/assets/models/portao-astral.glb"
+name: "portao-astral"
+materials {
+  name: "BasaltoNoturno"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/portao-astral-textures/basaltonoturno.png"
+  }
+}
+materials {
+  name: "BasaltoFrio"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/portao-astral-textures/basaltofrio.png"
+  }
+}
+materials {
+  name: "ArenitoVelho"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/portao-astral-textures/arenitovelho.png"
+  }
+}
+materials {
+  name: "FerroForjado"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/portao-astral-textures/ferroforjado.png"
+  }
+}
+materials {
+  name: "BronzeEnvelhecido"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/portao-astral-textures/bronzeenvelhecido.png"
+  }
+}
+materials {
+  name: "DouradoContido"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/portao-astral-textures/douradocontido.png"
+  }
+}
+materials {
+  name: "ArdosiaAzul"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/portao-astral-textures/ardosiaazul.png"
+  }
+}
+materials {
+  name: "CarvalhoEscuro"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/portao-astral-textures/carvalhoescuro.png"
+  }
+}
+materials {
+  name: "VeludoCarmesim"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/portao-astral-textures/veludocarmesim.png"
+  }
+}
+materials {
+  name: "VidroLunar"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/portao-astral-textures/vidrolunar.png"
+  }
+}
+materials {
+  name: "VidroBrasa"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/portao-astral-textures/vidrobrasa.png"
+  }
+}
+materials {
+  name: "LuzDeBraseiro"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/portao-astral-textures/luzdebraseiro.png"
+  }
+}
+materials {
+  name: "PavimentoMolhado"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/portao-astral-textures/pavimentomolhado.png"
+  }
+}
+materials {
+  name: "OuroDoTapete"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/portao-astral-textures/ourodotapete.png"
+  }
+}

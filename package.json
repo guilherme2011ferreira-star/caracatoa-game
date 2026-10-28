@@ -1,0 +1,15 @@
+{
+  "name": "caracatoa-game",
+  "version": "0.1.0",
+  "private": false,
+  "description": "MMORPG original em pré-alfa com cliente Defold e servidor local Caracatoa",
+  "license": "MIT",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "test": "node tools/run-tests.mjs",
+    "check:bundle": "node tools/preview/check-html5-bundle.mjs release/html5",
+    "preview": "node tools/preview/web-preview-server.mjs release/html5"
+  }
+}

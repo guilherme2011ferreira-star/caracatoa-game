@@ -1,0 +1,35 @@
+mesh: "/assets/models/stone_monster.glb"
+name: "caracatoa_stone_monster"
+materials {
+  name: "gold"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/stone_monster_gold.png"
+  }
+}
+materials {
+  name: "ivory"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/stone_monster_ivory.png"
+  }
+}
+materials {
+  name: "monster"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/stone_monster_monster.png"
+  }
+}
+materials {
+  name: "monsterLight"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/stone_monster_monsterLight.png"
+  }
+}
+create_go_bones: false

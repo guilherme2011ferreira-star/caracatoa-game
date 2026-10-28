@@ -1,0 +1,1814 @@
+{
+  "schemaVersion": 1,
+  "kind": "items",
+  "entries": [
+    {
+      "id": "caracatoa-lamina-de-treino",
+      "name": "Lâmina de Treino",
+      "description": "Arma leve de prática, equilibrada para aprender os fundamentos do combate.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 7001,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": true,
+        "equipment": {
+          "slot": "weapon",
+          "attackDamageBonus": 5,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ]
+        }
+      }
+    },
+    {
+      "id": "caracatoa-manto-de-linho",
+      "name": "Manto de Linho",
+      "description": "Manto simples que protege o peito sem restringir os movimentos.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 7002,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": true,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 2,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ]
+        }
+      }
+    },
+    {
+      "id": "caracatoa-ferro-votivo",
+      "name": "Ferro Votivo",
+      "description": "Equipamento autoral Caracatoa do tipo Arma de uma mão.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8001,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "weapon",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "weapon_1h"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-martelo-do-baluarte",
+      "name": "Martelo do Baluarte",
+      "description": "Equipamento autoral Caracatoa do tipo Arma de duas mãos.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8002,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "weapon",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "weapon_2h"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-arco-da-trilha",
+      "name": "Arco da Trilha",
+      "description": "Equipamento autoral Caracatoa do tipo Arco ou besta.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8003,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "weapon",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "bow"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-cajado-do-eco",
+      "name": "Cajado do Eco",
+      "description": "Equipamento autoral Caracatoa do tipo Cajado.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8004,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "weapon",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "staff"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-elmo-da-bruma",
+      "name": "Elmo da Bruma",
+      "description": "Equipamento autoral Caracatoa do tipo Elmo ou capuz.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8005,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "head",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "head"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-peitoral-de-cobre",
+      "name": "Peitoral de Cobre",
+      "description": "Equipamento autoral Caracatoa do tipo Peitoral, robe ou armadura Yeti.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8006,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "chest"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-grevas-de-cobre",
+      "name": "Grevas de Cobre",
+      "description": "Equipamento autoral Caracatoa do tipo Calças ou grevas.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8007,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "legs",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "legs"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-manoplas-de-cobre",
+      "name": "Manoplas de Cobre",
+      "description": "Equipamento autoral Caracatoa do tipo Luvas ou manoplas.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8008,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "accessory",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "gloves"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-botas-do-viajante",
+      "name": "Botas do Viajante",
+      "description": "Equipamento autoral Caracatoa do tipo Botas.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8009,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "feet",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "boots"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-capa-da-aurora",
+      "name": "Capa da Aurora",
+      "description": "Equipamento autoral Caracatoa do tipo Capa.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8010,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "accessory",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "cape"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-amuletos-da-fenda",
+      "name": "Amuleto da Fenda",
+      "description": "Equipamento autoral Caracatoa do tipo Colar ou amuleto.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8011,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "accessory",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "necklace"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-anel-dos-vigias",
+      "name": "Anel dos Vigias",
+      "description": "Equipamento autoral Caracatoa do tipo Anel.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8012,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "accessory",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "ring"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-manto-de-yeti",
+      "name": "Manto de Yeti",
+      "description": "Equipamento autoral Caracatoa do tipo Manto de couro Yeti.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8013,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "yeti_mantle"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-racao-de-campo",
+      "name": "Ração de Campo",
+      "description": "Material autoral Caracatoa: Ração de Campo.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8101,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": true
+      }
+    },
+    {
+      "id": "caracatoa-poeira-de-oriharucon",
+      "name": "Poeira de Oriharucon",
+      "description": "Material autoral Caracatoa: Poeira de Oriharucon.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8102,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": true
+      }
+    },
+    {
+      "id": "caracatoa-fragmento-de-lactolerium",
+      "name": "Fragmento de Lactolerium",
+      "description": "Material autoral Caracatoa: Fragmento de Lactolerium.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8103,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false
+      }
+    },
+    {
+      "id": "caracatoa-minerio-brumoso",
+      "name": "Minério Brumoso",
+      "description": "Material autoral Caracatoa: Minério Brumoso.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8104,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false
+      }
+    },
+    {
+      "id": "caracatoa-couro-de-yeti",
+      "name": "Couro de Yeti",
+      "description": "Material autoral Caracatoa: Couro de Yeti.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8105,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false
+      }
+    },
+    {
+      "id": "caracatoa-selo-do-abismo",
+      "name": "Selo do Abismo",
+      "description": "Material autoral Caracatoa: Selo do Abismo.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8106,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false
+      }
+    },
+    {
+      "id": "caracatoa-equipamento-selado",
+      "name": "Equipamento Selado",
+      "description": "Material autoral Caracatoa: Equipamento Selado.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8107,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false
+      }
+    },
+    {
+      "id": "caracatoa-pedra-do-sabio",
+      "name": "Pedra do Sábio",
+      "description": "Catalisador raro de refinamento e ascensão, marcado por runas douradas.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8108,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false
+      }
+    },
+    {
+      "id": "caracatoa-poeira-divina",
+      "name": "Poeira Divina",
+      "description": "Catalisador consumível que garante o sucesso de um refinamento de +10 a +15.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8109,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false
+      }
+    },
+    {
+      "id": "caracatoa-pedra-secreta-agua",
+      "name": "Pedra Secreta da Água",
+      "description": "Pedra secreta usada no décimo segundo grau de refinamento.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8110,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false
+      }
+    },
+    {
+      "id": "caracatoa-pedra-secreta-terra",
+      "name": "Pedra Secreta da Terra",
+      "description": "Pedra secreta usada no décimo terceiro grau de refinamento.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8111,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false
+      }
+    },
+    {
+      "id": "caracatoa-pedra-secreta-sol",
+      "name": "Pedra Secreta do Sol",
+      "description": "Pedra secreta usada no décimo quarto grau de refinamento.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8112,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false
+      }
+    },
+    {
+      "id": "caracatoa-pedra-secreta-vento",
+      "name": "Pedra Secreta do Vento",
+      "description": "Pedra secreta usada no décimo quinto grau de refinamento.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8113,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false
+      }
+    },
+    {
+      "id": "caracatoa-fragmento-do-altar",
+      "name": "Fragmento do Altar",
+      "description": "Fragmento de uma relíquia do Bastião, requerido pelo último ritual de estágio.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8114,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false
+      }
+    },
+    {
+      "id": "caracatoa-bronze-elmo-do-vigia-errante",
+      "name": "Elmo do Vigia Errante (Bronze)",
+      "description": "Elmo de bronze escurecido com crista curta em forma de cometa e pequenas gravuras de constelações autorais.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8201,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "head",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "head"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-bronze-couraca-da-centelha",
+      "name": "Couraça da Centelha (Bronze)",
+      "description": "Peitoral articulado de bronze, ferro negro e tecido rubro; placas sobrepostas protegem o tronco sem esconder a silhueta.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8202,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "chest"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-bronze-grevas-do-caminho-celeste",
+      "name": "Grevas do Caminho Celeste (Bronze)",
+      "description": "Grevas de bronze com linhas gravadas que lembram uma rota estelar e reforços de ferro nas articulações.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8203,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "legs",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "legs"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-bronze-botas-da-orbita-rubra",
+      "name": "Botas da Órbita Rubra (Bronze)",
+      "description": "Botas de bronze escuro com caneleira rebatida e pequenas pedras de cor âmbar.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8204,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "feet",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "boots"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-silver-elmo-do-veu-lunar",
+      "name": "Elmo do Véu Lunar (Prata)",
+      "description": "Elmo de prata fosca com viseira crescente e recortes próprios, sobre uma base de ferro azulado.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8205,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "head",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "head"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-silver-couraca-da-vigilia-prateada",
+      "name": "Couraça da Vigília Prateada (Prata)",
+      "description": "Couraça prateada de placas curvas, aro lunar no peito e tecido azul-petróleo preso sob os ombros.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8206,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "chest"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-silver-grevas-da-mare-estelar",
+      "name": "Grevas da Maré Estelar (Prata)",
+      "description": "Grevas de prata com juntas escuras e filetes azulados inspirados em mapas celestes originais.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8207,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "legs",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "legs"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-silver-botas-do-horizonte-frio",
+      "name": "Botas do Horizonte Frio (Prata)",
+      "description": "Botas reforçadas de prata envelhecida, com proteções articuladas e brilho azulado discreto.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8208,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "feet",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "boots"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-gold-elmo-da-coroa-solar",
+      "name": "Elmo da Coroa Solar (Ouro)",
+      "description": "Elmo dourado de viseira estreita, com raios curtos e assimétricos; o emblema é uma estrela autoral de doze pontos.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8209,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "head",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "head"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-gold-couraca-do-trono-dourado",
+      "name": "Couraça do Trono Dourado (Ouro)",
+      "description": "Peitoral dourado sobre ferro negro, com ombreiras esculpidas e uma gema cor de brasa no centro.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8210,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "chest"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-gold-grevas-dos-doze-claroes",
+      "name": "Grevas dos Doze Clarões (Ouro)",
+      "description": "Grevas douradas marcadas por doze pequenos sinais luminosos sem associação a personagens ou signos existentes.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8211,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "legs",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "legs"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-gold-botas-do-zenite",
+      "name": "Botas do Zênite (Ouro)",
+      "description": "Botas de liga dourada com caneleiras altas, rebites de bronze e detalhes rubros contidos.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8212,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "feet",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "itemizationType": "boots"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-bronze-couraca-elos-da-sentinela",
+      "name": "Couraça dos Elos da Sentinela (Bronze)",
+      "description": "Lâminas de bronze sobrepostas são unidas por elos discretos nos flancos, combinando mobilidade de braços e proteção de guarda.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8221,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0
+          ],
+          "itemizationType": "chest"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-bronze-couraca-brasa-renascida",
+      "name": "Couraça da Brasa Renascida (Bronze)",
+      "description": "Pequenas placas sobrepostas lembram penas de metal aquecidas nas bordas; o brilho âmbar é contido e nasce de uma gema central.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8222,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            1
+          ],
+          "itemizationType": "chest"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-bronze-couraca-veu-mutavel",
+      "name": "Couraça do Véu Mutável (Bronze)",
+      "description": "Segmentos leves e flexíveis acompanham o tronco; uma faixa de tecido rubro quebra a silhueta e comunica agilidade e adaptação.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8223,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            2
+          ],
+          "itemizationType": "chest"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-bronze-couraca-galope-celeste",
+      "name": "Couraça do Galope Celeste (Bronze)",
+      "description": "Costelas metálicas curvas avançam como o impulso de um corcel, com rebites de bronze escuro e juntas livres para o movimento.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8224,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            3
+          ],
+          "itemizationType": "chest"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-silver-couraca-reflexo-imovel",
+      "name": "Couraça do Reflexo Imóvel (Prata)",
+      "description": "Uma placa espelhada e facetada protege o esterno; seu padrão radial parece imóvel e transforma a defesa em parte da silhueta.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8225,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0
+          ],
+          "itemizationType": "chest"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-silver-couraca-eco-harmonico",
+      "name": "Couraça do Eco Harmônico (Prata)",
+      "description": "Aros gravados e sulcos concêntricos atravessam a prata envelhecida; o desenho sugere vibração e disciplina musical sem portar um instrumento.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8226,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            1
+          ],
+          "itemizationType": "chest"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-silver-couraca-serpe-argentea",
+      "name": "Couraça da Serpe Argêntea (Prata)",
+      "description": "Escamas articuladas percorrem o torso em curvas assimétricas, com filetes prateados que evocam uma criatura sinuosa sem reproduzir seu selo.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8227,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            2
+          ],
+          "itemizationType": "chest"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-silver-couraca-falcao-boreal",
+      "name": "Couraça do Falcão Boreal (Prata)",
+      "description": "Ombreiras ascendentes e uma placa peitoral afilada formam a silhueta de uma ave de rapina sob luz fria, em prata fosca e aço azulado.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8228,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            3
+          ],
+          "itemizationType": "chest"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-gold-couraca-fio-juramentado",
+      "name": "Couraça do Fio Juramentado (Ouro)",
+      "description": "Ranhuras diagonais limpas percorrem placas douradas sóbrias, alinhadas como um corte preciso; a forma valoriza técnica e contenção.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8229,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            0
+          ],
+          "itemizationType": "chest"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-gold-couraca-quietude-dourada",
+      "name": "Couraça da Quietude Dourada (Ouro)",
+      "description": "Anéis geométricos e placas douradas simétricas mantêm o centro visual sereno; a ornamentação inspira-se em meditação sem símbolos religiosos específicos.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8230,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            1
+          ],
+          "itemizationType": "chest"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-gold-couraca-ferrao-carmesim",
+      "name": "Couraça do Ferrão Carmesim (Ouro)",
+      "description": "Uma ponta curva protege o ombro e linhas rubras segmentadas contornam o torso, compondo uma armadura agressiva de precisão controlada.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8231,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            2
+          ],
+          "itemizationType": "chest"
+        }
+      }
+    },
+    {
+      "id": "caracatoa-gold-couraca-asas-do-regente",
+      "name": "Couraça das Asas do Regente (Ouro)",
+      "description": "Ombreiras douradas abrem-se em lâminas curtas sobre ferro negro; um manto de penas metálicas marca proteção e liderança.",
+      "enabled": true,
+      "properties": {
+        "clientItemId": 8232,
+        "stackCount": 1,
+        "field04": 0,
+        "effects": [
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          },
+          {
+            "index": 0,
+            "value": 0
+          }
+        ],
+        "starter": false,
+        "equipment": {
+          "slot": "chest",
+          "attackDamageBonus": 0,
+          "defenseBonus": 0,
+          "allowedClassIds": [
+            3
+          ],
+          "itemizationType": "chest"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+images {
+  image: "/assets/ui/caracatoa-login-logo.png"
+}
+margin: 0
+extrude_borders: 2
+inner_padding: 0

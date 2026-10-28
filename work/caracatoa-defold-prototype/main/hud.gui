@@ -1,0 +1,26 @@
+script: "/main/hud.gui_script"
+textures {
+  name: "entry_art"
+  texture: "/assets/ui/entry-art.atlas"
+}
+textures {
+  name: "branding"
+  texture: "/assets/ui/branding.atlas"
+}
+textures {
+  name: "login_panel"
+  texture: "/assets/ui/login-panel.atlas"
+}
+textures {
+  name: "registration_panel"
+  texture: "/assets/ui/registration-panel.atlas"
+}
+fonts {
+  name: "default"
+  font: "/builtins/fonts/default.font"
+}
+fonts {
+  name: "cinzel"
+  font: "/assets/ui/fonts/Cinzel-Variable.font"
+}
+max_nodes: 8192

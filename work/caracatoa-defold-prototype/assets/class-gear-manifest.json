@@ -1,0 +1,188 @@
+{
+  "source": "CC0 Quaternius Universal Base Characters head/eyes/hairstyles, combined with original Caracatoa class identity gear",
+  "generated": "2026-10-28T19:42:16.446Z",
+  "visualMaterials": {
+    "size": "128x128 RGBA",
+    "finish": "irregular painted breakup, brushed metal wear, and restrained leather mottling"
+  },
+  "classes": [
+    {
+      "class": "TK",
+      "outputFile": "transknight",
+      "vertexCount": 18501,
+      "triangleCount": 6955,
+      "addedMaterials": 10,
+      "sourceOutfit": "Male_Ranger.gltf",
+      "faceJoint": 6,
+      "licensedHead": {
+        "faceTriangles": 2754,
+        "hairTriangles": 1301,
+        "hairStyle": "Hair_SimpleParted",
+        "beard": null,
+        "texture": "transknight-hair.png",
+        "headMaterial": "Caracatoa_Face_male",
+        "eyeMaterial": "Caracatoa_Eyes",
+        "hairMaterial": "Caracatoa_Hair_transknight",
+        "headTexture": "T_Superhero_Male_Dark.png"
+      }
+    },
+    {
+      "class": "Foema",
+      "outputFile": "foema",
+      "vertexCount": 25007,
+      "triangleCount": 8684,
+      "addedMaterials": 9,
+      "sourceOutfit": "Female_Peasant.gltf",
+      "faceJoint": 6,
+      "licensedHead": {
+        "faceTriangles": 2962,
+        "hairTriangles": 2906,
+        "hairStyle": "Hair_Long",
+        "beard": null,
+        "texture": "foema-hair.png",
+        "headMaterial": "Caracatoa_Face_female",
+        "eyeMaterial": "Caracatoa_Eyes",
+        "hairMaterial": "Caracatoa_Hair_foema",
+        "headTexture": "T_Superhero_Female_Dark_BaseColor.png"
+      }
+    },
+    {
+      "class": "BM",
+      "outputFile": "beastmaster",
+      "vertexCount": 19807,
+      "triangleCount": 7074,
+      "addedMaterials": 9,
+      "sourceOutfit": "Male_Peasant.gltf",
+      "faceJoint": 6,
+      "licensedHead": {
+        "faceTriangles": 2754,
+        "hairTriangles": 1864,
+        "hairStyle": "Hair_Buzzed",
+        "beard": "Hair_Beard",
+        "texture": "beastmaster-hair.png",
+        "headMaterial": "Caracatoa_Face_male",
+        "eyeMaterial": "Caracatoa_Eyes",
+        "hairMaterial": "Caracatoa_Hair_beastmaster",
+        "headTexture": "T_Superhero_Male_Dark.png"
+      }
+    },
+    {
+      "class": "HT",
+      "outputFile": "huntress",
+      "vertexCount": 18756,
+      "triangleCount": 6252,
+      "addedMaterials": 9,
+      "sourceOutfit": "Female_Ranger.gltf",
+      "faceJoint": 6,
+      "licensedHead": {
+        "faceTriangles": 2962,
+        "hairTriangles": 830,
+        "hairStyle": "Hair_BuzzedFemale",
+        "beard": null,
+        "texture": "huntress-hair.png",
+        "headMaterial": "Caracatoa_Face_female",
+        "eyeMaterial": "Caracatoa_Eyes",
+        "hairMaterial": "Caracatoa_Hair_huntress",
+        "headTexture": "T_Superhero_Female_Dark_BaseColor.png"
+      }
+    }
+  ],
+  "materials": {
+    "Caracatoa_Red": [
+      0.38,
+      0.035,
+      0.025,
+      1
+    ],
+    "Caracatoa_Red_Light": [
+      0.68,
+      0.1,
+      0.045,
+      1
+    ],
+    "Caracatoa_Blue": [
+      0.035,
+      0.12,
+      0.31,
+      1
+    ],
+    "Caracatoa_Blue_Light": [
+      0.16,
+      0.38,
+      0.7,
+      1
+    ],
+    "Caracatoa_Green": [
+      0.075,
+      0.2,
+      0.1,
+      1
+    ],
+    "Caracatoa_Green_Light": [
+      0.25,
+      0.36,
+      0.16,
+      1
+    ],
+    "Caracatoa_Leather": [
+      0.16,
+      0.075,
+      0.035,
+      1
+    ],
+    "Caracatoa_Leather_Light": [
+      0.36,
+      0.2,
+      0.075,
+      1
+    ],
+    "Caracatoa_Gold": [
+      0.78,
+      0.49,
+      0.1,
+      1
+    ],
+    "Caracatoa_Gold_Light": [
+      0.96,
+      0.77,
+      0.29,
+      1
+    ],
+    "Caracatoa_Silver": [
+      0.58,
+      0.66,
+      0.72,
+      1
+    ],
+    "Caracatoa_Steel": [
+      0.25,
+      0.32,
+      0.4,
+      1
+    ],
+    "Caracatoa_Ivory": [
+      0.8,
+      0.76,
+      0.64,
+      1
+    ],
+    "Caracatoa_White": [
+      0.95,
+      0.92,
+      0.84,
+      1
+    ],
+    "Caracatoa_Purple": [
+      0.38,
+      0.12,
+      0.72,
+      1
+    ],
+    "Caracatoa_Blue_Gem": [
+      0.08,
+      0.62,
+      0.92,
+      1
+    ]
+  }
+}

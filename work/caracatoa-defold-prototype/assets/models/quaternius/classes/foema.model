@@ -1,0 +1,86 @@
+mesh: "/assets/models/quaternius/class-gear/foema.gltf"
+name: "caracatoa_foema"
+skeleton: "/assets/models/quaternius/class-gear/foema.gltf"
+animations: "/assets/models/quaternius/animations/CaracatoaHumanoid.animationset"
+default_animation: "Idle_Loop"
+materials {
+  name: "MI_Peasant"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/outfits/T_Peasant_BaseColor.png"
+  }
+}
+materials {
+  name: "Caracatoa_Face_female"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/heads/source/T_Superhero_Female_Dark_BaseColor.png"
+  }
+}
+materials {
+  name: "Caracatoa_Eyes"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/heads/source/T_Eye_Brown.png"
+  }
+}
+materials {
+  name: "Caracatoa_Hair_foema"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/heads/foema-hair.png"
+  }
+}
+materials {
+  name: "Caracatoa_Blue"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/palettes/Caracatoa_Blue.png"
+  }
+}
+materials {
+  name: "Caracatoa_White"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/palettes/Caracatoa_White.png"
+  }
+}
+materials {
+  name: "Caracatoa_Gold"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/palettes/Caracatoa_Gold.png"
+  }
+}
+materials {
+  name: "Caracatoa_Blue_Gem"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/palettes/Caracatoa_Blue_Gem.png"
+  }
+}
+materials {
+  name: "Caracatoa_Silver"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/palettes/Caracatoa_Silver.png"
+  }
+}
+materials {
+  name: "Caracatoa_Purple"
+  material: "/builtins/materials/model_skinned.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/quaternius/palettes/Caracatoa_Purple.png"
+  }
+}
+create_go_bones: false

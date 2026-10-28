@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "kind": "advancement",
+  "balanceVersion": "caracatoa-advancement-v1",
+  "refinement": {
+    "maximumLevel": 15,
+    "baseStatIncreasePerLevelBps": 350,
+    "successChanceBpsByTargetLevel": [
+      0, 10000, 9500, 9000, 8500, 8000, 7500, 7000,
+      6000, 5000, 4500, 3500, 2500, 2000, 1200, 800
+    ],
+    "failureDowngradeFromTargetLevel": 7,
+    "guaranteedFromTargetLevel": 10,
+    "divineDustItemId": "caracatoa-poeira-divina",
+    "noItemBreak": true,
+    "materialByTargetLevel": {
+      "1": "caracatoa-poeira-de-oriharucon",
+      "2": "caracatoa-poeira-de-oriharucon",
+      "3": "caracatoa-poeira-de-oriharucon",
+      "4": "caracatoa-poeira-de-oriharucon",
+      "5": "caracatoa-poeira-de-oriharucon",
+      "6": "caracatoa-poeira-de-oriharucon",
+      "7": "caracatoa-fragmento-de-lactolerium",
+      "8": "caracatoa-fragmento-de-lactolerium",
+      "9": "caracatoa-fragmento-de-lactolerium",
+      "10": "caracatoa-pedra-do-sabio",
+      "11": "caracatoa-pedra-do-sabio",
+      "12": "caracatoa-pedra-secreta-agua",
+      "13": "caracatoa-pedra-secreta-terra",
+      "14": "caracatoa-pedra-secreta-sol",
+      "15": "caracatoa-pedra-secreta-vento"
+    }
+  },
+  "stages": [
+    { "id": "mortal", "displayName": "Mortal", "stageId": 0, "maximumTotalLevel": 400, "requiredMaterialId": null, "requiredMaterialClientItemId": 0 },
+    { "id": "arch", "displayName": "Arch", "stageId": 1, "maximumTotalLevel": 800, "requiredMaterialId": "caracatoa-selo-do-abismo", "requiredMaterialClientItemId": 8106 },
+    { "id": "celestial", "displayName": "Celestial", "stageId": 2, "maximumTotalLevel": 1200, "requiredMaterialId": "caracatoa-pedra-do-sabio", "requiredMaterialClientItemId": 8108 },
+    { "id": "sub-celestial", "displayName": "Sub-Celestial", "stageId": 3, "maximumTotalLevel": 1600, "requiredMaterialId": "caracatoa-fragmento-do-altar", "requiredMaterialClientItemId": 8114 }
+  ],
+  "stageRitual": {
+    "bonusAttributePoints": 25,
+    "bonusSkillPoints": 5,
+    "levelCarryOver": true,
+    "experienceCarryOver": true
+  }
+}

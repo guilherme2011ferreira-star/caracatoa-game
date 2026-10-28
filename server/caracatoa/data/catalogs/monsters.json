@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "kind": "monsters",
+  "entries": [
+    {
+      "id": "golem-pedra",
+      "name": "Golem de Pedra",
+      "description": "Criatura autoral de treino que guarda a trilha inicial de Caracatoa.",
+      "enabled": true,
+      "properties": {
+        "clientEntityId": 64000,
+        "equipModelIds": [1000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "spawnPosition": { "x": 130, "y": 128 },
+        "level": 1,
+        "startingStats": {
+          "defense": 1,
+          "damage": 1,
+          "merchant": 0,
+          "movementSpeed": 1,
+          "direction": 0,
+          "chaosRate": 0,
+          "maxHp": 50,
+          "maxMp": 1,
+          "currentHp": 50,
+          "currentMp": 0,
+          "str": 8,
+          "int": 4,
+          "dex": 4,
+          "con": 8
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+mesh: "/assets/models/caracatoa_altar.glb"
+name: "caracatoa_altar"
+materials {
+  name: "AltarStone"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/altar-textures/kersef-limestone.png"
+  }
+}
+materials {
+  name: "AltarTrim"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/altar-textures/ivory-marble.png"
+  }
+}
+materials {
+  name: "AltarDark"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/altar-textures/blue-slate.png"
+  }
+}
+materials {
+  name: "AltarGold"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/altar-textures/etched-brass.png"
+  }
+}
+materials {
+  name: "AltarCurtain"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/altar-textures/crimson-velvet.png"
+  }
+}
+materials {
+  name: "AltarBlue"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/altar-textures/royal-velvet.png"
+  }
+}
+materials {
+  name: "AltarFloor"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/altar-textures/marble-mosaic.png"
+  }
+}
+materials {
+  name: "AltarGlass"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/altar-textures/sanctuary-glass.png"
+  }
+}
+materials {
+  name: "AltarEmber"
+  material: "/assets/materials/caracatoa_town.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/altar-textures/amber-lantern.png"
+  }
+}

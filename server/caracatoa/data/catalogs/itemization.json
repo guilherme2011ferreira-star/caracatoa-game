@@ -1,0 +1,1227 @@
+{
+  "schemaVersion": 1,
+  "kind": "itemization",
+  "balanceVersion": "caracatoa-itemization-v1",
+  "levelRules": {
+    "minimum": 1,
+    "maximum": 400,
+    "affixReferenceLevel": 100,
+    "affixScaleBaseBps": 5000,
+    "affixScalePerLevelBps": 50,
+    "affixScaleCapBps": 25000,
+    "itemLevelFromMonsterLevelBps": 8000,
+    "minimumItemLevel": 1,
+    "maximumItemLevel": 400
+  },
+  "dropRules": {
+    "luckBonusCapBps": 2500,
+    "equipmentChanceCapBps": 1000,
+    "itemChanceCapBps": 10000,
+    "maximumGeneratedDropsPerKill": 5,
+    "globalChanceFormula": "floor(baseChanceBps * monsterMultiplierBps * zoneMultiplierBps * (10000 + luckBonusBps) / 10000^3)",
+    "luckChangesDropChanceOnly": true
+  },
+  "rarities": {
+    "normal": {
+      "displayName": "Normal",
+      "color": "#E8E8E8",
+      "baseStatMultiplierBps": 10000,
+      "affixCount": {
+        "min": 0,
+        "max": 0
+      }
+    },
+    "mystic": {
+      "displayName": "Místico",
+      "color": "#4D9BFF",
+      "baseStatMultiplierBps": 10300,
+      "affixCount": {
+        "min": 1,
+        "max": 2
+      }
+    },
+    "arcane": {
+      "displayName": "Arcano",
+      "color": "#B46AFF",
+      "baseStatMultiplierBps": 10600,
+      "affixCount": {
+        "min": 2,
+        "max": 3
+      }
+    },
+    "legendary": {
+      "displayName": "Legendário",
+      "color": "#F4BE42",
+      "baseStatMultiplierBps": 11000,
+      "affixCount": {
+        "min": 3,
+        "max": 4
+      }
+    },
+    "ancient": {
+      "displayName": "Ancient",
+      "color": "#F2E6C4",
+      "baseStatMultiplierBps": 11250,
+      "affixCount": {
+        "min": 4,
+        "max": 4
+      },
+      "signatureEffect": "visual-only-until-authored"
+    }
+  },
+  "monsterProfiles": {
+    "common": {
+      "dropMultiplierBps": 10000,
+      "maxAffixValueRollBps": 50,
+      "rarityWeights": {
+        "normal": 8000,
+        "mystic": 1700,
+        "arcane": 300,
+        "legendary": 0,
+        "ancient": 0
+      }
+    },
+    "elite": {
+      "dropMultiplierBps": 30000,
+      "maxAffixValueRollBps": 250,
+      "rarityWeights": {
+        "normal": 6000,
+        "mystic": 2800,
+        "arcane": 1000,
+        "legendary": 200,
+        "ancient": 0
+      }
+    },
+    "boss": {
+      "dropMultiplierBps": 60000,
+      "maxAffixValueRollBps": 1000,
+      "rarityWeights": {
+        "normal": 4000,
+        "mystic": 3500,
+        "arcane": 1800,
+        "legendary": 650,
+        "ancient": 50
+      }
+    }
+  },
+  "zoneProfiles": {
+    "standard": {
+      "dropMultiplierBps": 10000,
+      "maxAffixValueRollBonusBps": 0,
+      "rarityWeightDeltaByMonsterProfile": {
+        "common": {
+          "normal": 0,
+          "mystic": 0,
+          "arcane": 0,
+          "legendary": 0,
+          "ancient": 0
+        },
+        "elite": {
+          "normal": 0,
+          "mystic": 0,
+          "arcane": 0,
+          "legendary": 0,
+          "ancient": 0
+        },
+        "boss": {
+          "normal": 0,
+          "mystic": 0,
+          "arcane": 0,
+          "legendary": 0,
+          "ancient": 0
+        }
+      }
+    },
+    "dangerous": {
+      "dropMultiplierBps": 12500,
+      "maxAffixValueRollBonusBps": 200,
+      "rarityWeightDeltaByMonsterProfile": {
+        "common": {
+          "normal": -700,
+          "mystic": 400,
+          "arcane": 250,
+          "legendary": 50,
+          "ancient": 0
+        },
+        "elite": {
+          "normal": -700,
+          "mystic": 200,
+          "arcane": 350,
+          "legendary": 140,
+          "ancient": 10
+        },
+        "boss": {
+          "normal": -700,
+          "mystic": 200,
+          "arcane": 350,
+          "legendary": 140,
+          "ancient": 10
+        }
+      }
+    }
+  },
+  "globalStatCaps": {
+    "physicalDamageFlat": 60,
+    "criticalDamageBps": 2000,
+    "accuracyBps": 1500,
+    "armorPenetrationBps": 1000,
+    "magicAttackBps": 1800,
+    "cooldownReductionBps": 1000,
+    "mpCostReductionBps": 1500,
+    "physicalDefenseFlat": 30,
+    "elementalResistanceBps": 1500,
+    "maxHpFlat": 250,
+    "maxMpFlat": 120,
+    "damageAbsorptionBps": 1000,
+    "movementSpeedBps": 800,
+    "dropRateBps": 800,
+    "experienceBonusBps": 800
+  },
+  "itemTypes": {
+    "weapon_1h": {
+      "displayName": "Arma de uma mão",
+      "baseStatsAt100": {
+        "physicalDamage": 130,
+        "magicAttack": 0,
+        "physicalDefense": 0,
+        "maxHp": 0,
+        "maxMp": 0
+      },
+      "equipmentSlot": "weapon"
+    },
+    "weapon_2h": {
+      "displayName": "Arma de duas mãos",
+      "baseStatsAt100": {
+        "physicalDamage": 190,
+        "magicAttack": 0,
+        "physicalDefense": 0,
+        "maxHp": 0,
+        "maxMp": 0
+      },
+      "equipmentSlot": "weapon"
+    },
+    "bow": {
+      "displayName": "Arco ou besta",
+      "baseStatsAt100": {
+        "physicalDamage": 160,
+        "magicAttack": 0,
+        "physicalDefense": 0,
+        "maxHp": 0,
+        "maxMp": 0
+      },
+      "equipmentSlot": "weapon"
+    },
+    "staff": {
+      "displayName": "Cajado",
+      "baseStatsAt100": {
+        "physicalDamage": 70,
+        "magicAttack": 150,
+        "physicalDefense": 0,
+        "maxHp": 0,
+        "maxMp": 20
+      },
+      "equipmentSlot": "weapon"
+    },
+    "head": {
+      "displayName": "Elmo ou capuz",
+      "baseStatsAt100": {
+        "physicalDamage": 0,
+        "magicAttack": 0,
+        "physicalDefense": 30,
+        "maxHp": 20,
+        "maxMp": 0
+      },
+      "equipmentSlot": "head"
+    },
+    "chest": {
+      "displayName": "Peitoral, robe ou armadura Yeti",
+      "baseStatsAt100": {
+        "physicalDamage": 0,
+        "magicAttack": 0,
+        "physicalDefense": 60,
+        "maxHp": 50,
+        "maxMp": 0
+      },
+      "equipmentSlot": "chest"
+    },
+    "legs": {
+      "displayName": "Calças ou grevas",
+      "baseStatsAt100": {
+        "physicalDamage": 0,
+        "magicAttack": 0,
+        "physicalDefense": 42,
+        "maxHp": 20,
+        "maxMp": 0
+      },
+      "equipmentSlot": "legs"
+    },
+    "gloves": {
+      "displayName": "Luvas ou manoplas",
+      "baseStatsAt100": {
+        "physicalDamage": 0,
+        "magicAttack": 0,
+        "physicalDefense": 24,
+        "maxHp": 0,
+        "maxMp": 0
+      },
+      "equipmentSlot": "accessory"
+    },
+    "boots": {
+      "displayName": "Botas",
+      "baseStatsAt100": {
+        "physicalDamage": 0,
+        "magicAttack": 0,
+        "physicalDefense": 24,
+        "maxHp": 0,
+        "maxMp": 0
+      },
+      "equipmentSlot": "feet"
+    },
+    "cape": {
+      "displayName": "Capa",
+      "baseStatsAt100": {
+        "physicalDamage": 0,
+        "magicAttack": 0,
+        "physicalDefense": 18,
+        "maxHp": 40,
+        "maxMp": 15
+      },
+      "equipmentSlot": "accessory"
+    },
+    "necklace": {
+      "displayName": "Colar ou amuleto",
+      "baseStatsAt100": {
+        "physicalDamage": 0,
+        "magicAttack": 0,
+        "physicalDefense": 0,
+        "maxHp": 80,
+        "maxMp": 30
+      },
+      "equipmentSlot": "accessory"
+    },
+    "ring": {
+      "displayName": "Anel",
+      "baseStatsAt100": {
+        "physicalDamage": 0,
+        "magicAttack": 0,
+        "physicalDefense": 0,
+        "maxHp": 35,
+        "maxMp": 45
+      },
+      "equipmentSlot": "accessory"
+    },
+    "yeti_mantle": {
+      "displayName": "Manto de couro Yeti",
+      "baseStatsAt100": {
+        "physicalDamage": 0,
+        "magicAttack": 0,
+        "physicalDefense": 52,
+        "maxHp": 70,
+        "maxMp": 0
+      },
+      "equipmentSlot": "chest"
+    }
+  },
+  "affixes": [
+    {
+      "id": "keen",
+      "name": "Afiado",
+      "position": "prefix",
+      "stat": "physicalDamageFlat",
+      "minValue": 2,
+      "maxValue": 12,
+      "hardCapPerItem": 30,
+      "weight": 1000,
+      "allowedTypes": [
+        "weapon_1h",
+        "weapon_2h",
+        "bow"
+      ],
+      "clientAffixId": 1
+    },
+    {
+      "id": "savage",
+      "name": "Cruel",
+      "position": "suffix",
+      "stat": "criticalDamageBps",
+      "minValue": 200,
+      "maxValue": 800,
+      "hardCapPerItem": 800,
+      "weight": 700,
+      "allowedTypes": [
+        "weapon_1h",
+        "weapon_2h",
+        "bow"
+      ],
+      "clientAffixId": 2
+    },
+    {
+      "id": "trueflight",
+      "name": "Preciso",
+      "position": "prefix",
+      "stat": "accuracyBps",
+      "minValue": 200,
+      "maxValue": 600,
+      "hardCapPerItem": 600,
+      "weight": 700,
+      "allowedTypes": [
+        "weapon_1h",
+        "weapon_2h",
+        "bow",
+        "staff"
+      ],
+      "clientAffixId": 3
+    },
+    {
+      "id": "sunder",
+      "name": "Perfurante",
+      "position": "suffix",
+      "stat": "armorPenetrationBps",
+      "minValue": 100,
+      "maxValue": 400,
+      "hardCapPerItem": 400,
+      "weight": 500,
+      "allowedTypes": [
+        "weapon_1h",
+        "weapon_2h",
+        "bow"
+      ],
+      "clientAffixId": 4
+    },
+    {
+      "id": "spellwoven",
+      "name": "Arcano",
+      "position": "prefix",
+      "stat": "magicAttackBps",
+      "minValue": 200,
+      "maxValue": 800,
+      "hardCapPerItem": 800,
+      "weight": 900,
+      "allowedTypes": [
+        "staff",
+        "weapon_1h",
+        "weapon_2h"
+      ],
+      "clientAffixId": 5
+    },
+    {
+      "id": "swiftcasting",
+      "name": "da Celeridade",
+      "position": "suffix",
+      "stat": "cooldownReductionBps",
+      "minValue": 100,
+      "maxValue": 400,
+      "hardCapPerItem": 400,
+      "weight": 500,
+      "allowedTypes": [
+        "staff",
+        "necklace",
+        "ring"
+      ],
+      "clientAffixId": 6
+    },
+    {
+      "id": "efficient",
+      "name": "Conservador",
+      "position": "prefix",
+      "stat": "mpCostReductionBps",
+      "minValue": 100,
+      "maxValue": 500,
+      "hardCapPerItem": 500,
+      "weight": 600,
+      "allowedTypes": [
+        "staff",
+        "head",
+        "chest",
+        "necklace",
+        "ring",
+        "cape"
+      ],
+      "clientAffixId": 7
+    },
+    {
+      "id": "warded",
+      "name": "Guardião",
+      "position": "prefix",
+      "stat": "physicalDefenseFlat",
+      "minValue": 1,
+      "maxValue": 8,
+      "hardCapPerItem": 12,
+      "weight": 900,
+      "allowedTypes": [
+        "head",
+        "chest",
+        "legs",
+        "gloves",
+        "boots",
+        "cape",
+        "yeti_mantle"
+      ],
+      "clientAffixId": 8
+    },
+    {
+      "id": "elementalward",
+      "name": "Resistente",
+      "position": "suffix",
+      "stat": "elementalResistanceBps",
+      "minValue": 100,
+      "maxValue": 500,
+      "hardCapPerItem": 500,
+      "weight": 500,
+      "allowedTypes": [
+        "head",
+        "chest",
+        "legs",
+        "gloves",
+        "boots",
+        "cape",
+        "yeti_mantle",
+        "necklace",
+        "ring"
+      ],
+      "clientAffixId": 9
+    },
+    {
+      "id": "vital",
+      "name": "Vital",
+      "position": "prefix",
+      "stat": "maxHpFlat",
+      "minValue": 10,
+      "maxValue": 60,
+      "hardCapPerItem": 100,
+      "weight": 900,
+      "allowedTypes": [
+        "head",
+        "chest",
+        "legs",
+        "gloves",
+        "boots",
+        "cape",
+        "yeti_mantle",
+        "necklace",
+        "ring"
+      ],
+      "clientAffixId": 10
+    },
+    {
+      "id": "focused",
+      "name": "Concentrado",
+      "position": "prefix",
+      "stat": "maxMpFlat",
+      "minValue": 8,
+      "maxValue": 40,
+      "hardCapPerItem": 60,
+      "weight": 700,
+      "allowedTypes": [
+        "head",
+        "chest",
+        "legs",
+        "gloves",
+        "boots",
+        "cape",
+        "necklace",
+        "ring",
+        "staff"
+      ],
+      "clientAffixId": 11
+    },
+    {
+      "id": "absorbing",
+      "name": "da Couraça",
+      "position": "suffix",
+      "stat": "damageAbsorptionBps",
+      "minValue": 50,
+      "maxValue": 200,
+      "hardCapPerItem": 200,
+      "weight": 350,
+      "allowedTypes": [
+        "chest",
+        "legs",
+        "gloves",
+        "boots",
+        "cape",
+        "yeti_mantle"
+      ],
+      "clientAffixId": 12
+    },
+    {
+      "id": "traveler",
+      "name": "Errante",
+      "position": "suffix",
+      "stat": "movementSpeedBps",
+      "minValue": 100,
+      "maxValue": 300,
+      "hardCapPerItem": 300,
+      "weight": 400,
+      "allowedTypes": [
+        "gloves",
+        "boots",
+        "cape",
+        "ring"
+      ],
+      "clientAffixId": 13
+    },
+    {
+      "id": "fortune",
+      "name": "da Fortuna",
+      "position": "suffix",
+      "stat": "dropRateBps",
+      "minValue": 100,
+      "maxValue": 300,
+      "hardCapPerItem": 300,
+      "weight": 250,
+      "allowedTypes": [
+        "necklace",
+        "ring",
+        "cape"
+      ],
+      "clientAffixId": 14
+    },
+    {
+      "id": "scholar",
+      "name": "Erudito",
+      "position": "prefix",
+      "stat": "experienceBonusBps",
+      "minValue": 100,
+      "maxValue": 300,
+      "hardCapPerItem": 300,
+      "weight": 250,
+      "allowedTypes": [
+        "head",
+        "legs",
+        "gloves",
+        "boots",
+        "necklace",
+        "ring",
+        "cape"
+      ],
+      "clientAffixId": 15
+    }
+  ],
+  "itemTemplates": [
+    {
+      "id": "caracatoa-ferro-votivo",
+      "clientItemId": 8001,
+      "name": "Ferro Votivo",
+      "itemType": "weapon_1h",
+      "minItemLevel": 1,
+      "maxItemLevel": 400,
+      "dropWeight": 1000
+    },
+    {
+      "id": "caracatoa-martelo-do-baluarte",
+      "clientItemId": 8002,
+      "name": "Martelo do Baluarte",
+      "itemType": "weapon_2h",
+      "minItemLevel": 1,
+      "maxItemLevel": 400,
+      "dropWeight": 700
+    },
+    {
+      "id": "caracatoa-arco-da-trilha",
+      "clientItemId": 8003,
+      "name": "Arco da Trilha",
+      "itemType": "bow",
+      "minItemLevel": 1,
+      "maxItemLevel": 400,
+      "dropWeight": 700
+    },
+    {
+      "id": "caracatoa-cajado-do-eco",
+      "clientItemId": 8004,
+      "name": "Cajado do Eco",
+      "itemType": "staff",
+      "minItemLevel": 1,
+      "maxItemLevel": 400,
+      "dropWeight": 600
+    },
+    {
+      "id": "caracatoa-elmo-da-bruma",
+      "clientItemId": 8005,
+      "name": "Elmo da Bruma",
+      "itemType": "head",
+      "minItemLevel": 1,
+      "maxItemLevel": 400,
+      "dropWeight": 700
+    },
+    {
+      "id": "caracatoa-peitoral-de-cobre",
+      "clientItemId": 8006,
+      "name": "Peitoral de Cobre",
+      "itemType": "chest",
+      "minItemLevel": 1,
+      "maxItemLevel": 400,
+      "dropWeight": 900
+    },
+    {
+      "id": "caracatoa-grevas-de-cobre",
+      "clientItemId": 8007,
+      "name": "Grevas de Cobre",
+      "itemType": "legs",
+      "minItemLevel": 1,
+      "maxItemLevel": 400,
+      "dropWeight": 700
+    },
+    {
+      "id": "caracatoa-manoplas-de-cobre",
+      "clientItemId": 8008,
+      "name": "Manoplas de Cobre",
+      "itemType": "gloves",
+      "minItemLevel": 1,
+      "maxItemLevel": 400,
+      "dropWeight": 600
+    },
+    {
+      "id": "caracatoa-botas-do-viajante",
+      "clientItemId": 8009,
+      "name": "Botas do Viajante",
+      "itemType": "boots",
+      "minItemLevel": 1,
+      "maxItemLevel": 400,
+      "dropWeight": 650
+    },
+    {
+      "id": "caracatoa-capa-da-aurora",
+      "clientItemId": 8010,
+      "name": "Capa da Aurora",
+      "itemType": "cape",
+      "minItemLevel": 1,
+      "maxItemLevel": 400,
+      "dropWeight": 350
+    },
+    {
+      "id": "caracatoa-amuletos-da-fenda",
+      "clientItemId": 8011,
+      "name": "Amuleto da Fenda",
+      "itemType": "necklace",
+      "minItemLevel": 1,
+      "maxItemLevel": 400,
+      "dropWeight": 350
+    },
+    {
+      "id": "caracatoa-anel-dos-vigias",
+      "clientItemId": 8012,
+      "name": "Anel dos Vigias",
+      "itemType": "ring",
+      "minItemLevel": 1,
+      "maxItemLevel": 400,
+      "dropWeight": 300
+    },
+    {
+      "id": "caracatoa-manto-de-yeti",
+      "clientItemId": 8013,
+      "name": "Manto de Yeti",
+      "itemType": "yeti_mantle",
+      "minItemLevel": 80,
+      "maxItemLevel": 220,
+      "dropWeight": 250
+    },
+    {
+      "id": "caracatoa-bronze-elmo-do-vigia-errante",
+      "clientItemId": 8201,
+      "name": "Elmo do Vigia Errante (Bronze)",
+      "itemType": "head",
+      "minItemLevel": 1,
+      "maxItemLevel": 99,
+      "dropWeight": 250
+    },
+    {
+      "id": "caracatoa-bronze-couraca-da-centelha",
+      "clientItemId": 8202,
+      "name": "Couraça da Centelha (Bronze)",
+      "itemType": "chest",
+      "minItemLevel": 1,
+      "maxItemLevel": 99,
+      "dropWeight": 250
+    },
+    {
+      "id": "caracatoa-bronze-grevas-do-caminho-celeste",
+      "clientItemId": 8203,
+      "name": "Grevas do Caminho Celeste (Bronze)",
+      "itemType": "legs",
+      "minItemLevel": 1,
+      "maxItemLevel": 99,
+      "dropWeight": 250
+    },
+    {
+      "id": "caracatoa-bronze-botas-da-orbita-rubra",
+      "clientItemId": 8204,
+      "name": "Botas da Órbita Rubra (Bronze)",
+      "itemType": "boots",
+      "minItemLevel": 1,
+      "maxItemLevel": 99,
+      "dropWeight": 250
+    },
+    {
+      "id": "caracatoa-silver-elmo-do-veu-lunar",
+      "clientItemId": 8205,
+      "name": "Elmo do Véu Lunar (Prata)",
+      "itemType": "head",
+      "minItemLevel": 100,
+      "maxItemLevel": 249,
+      "dropWeight": 300
+    },
+    {
+      "id": "caracatoa-silver-couraca-da-vigilia-prateada",
+      "clientItemId": 8206,
+      "name": "Couraça da Vigília Prateada (Prata)",
+      "itemType": "chest",
+      "minItemLevel": 100,
+      "maxItemLevel": 249,
+      "dropWeight": 300
+    },
+    {
+      "id": "caracatoa-silver-grevas-da-mare-estelar",
+      "clientItemId": 8207,
+      "name": "Grevas da Maré Estelar (Prata)",
+      "itemType": "legs",
+      "minItemLevel": 100,
+      "maxItemLevel": 249,
+      "dropWeight": 300
+    },
+    {
+      "id": "caracatoa-silver-botas-do-horizonte-frio",
+      "clientItemId": 8208,
+      "name": "Botas do Horizonte Frio (Prata)",
+      "itemType": "boots",
+      "minItemLevel": 100,
+      "maxItemLevel": 249,
+      "dropWeight": 300
+    },
+    {
+      "id": "caracatoa-gold-elmo-da-coroa-solar",
+      "clientItemId": 8209,
+      "name": "Elmo da Coroa Solar (Ouro)",
+      "itemType": "head",
+      "minItemLevel": 250,
+      "maxItemLevel": 400,
+      "dropWeight": 160
+    },
+    {
+      "id": "caracatoa-gold-couraca-do-trono-dourado",
+      "clientItemId": 8210,
+      "name": "Couraça do Trono Dourado (Ouro)",
+      "itemType": "chest",
+      "minItemLevel": 250,
+      "maxItemLevel": 400,
+      "dropWeight": 160
+    },
+    {
+      "id": "caracatoa-gold-grevas-dos-doze-claroes",
+      "clientItemId": 8211,
+      "name": "Grevas dos Doze Clarões (Ouro)",
+      "itemType": "legs",
+      "minItemLevel": 250,
+      "maxItemLevel": 400,
+      "dropWeight": 160
+    },
+    {
+      "id": "caracatoa-gold-botas-do-zenite",
+      "clientItemId": 8212,
+      "name": "Botas do Zênite (Ouro)",
+      "itemType": "boots",
+      "minItemLevel": 250,
+      "maxItemLevel": 400,
+      "dropWeight": 160
+    },
+    {
+      "id": "caracatoa-bronze-couraca-elos-da-sentinela",
+      "clientItemId": 8221,
+      "name": "Couraça dos Elos da Sentinela (Bronze)",
+      "itemType": "chest",
+      "minItemLevel": 1,
+      "maxItemLevel": 99,
+      "dropWeight": 250
+    },
+    {
+      "id": "caracatoa-bronze-couraca-veu-mutavel",
+      "clientItemId": 8223,
+      "name": "Couraça do Véu Mutável (Bronze)",
+      "itemType": "chest",
+      "minItemLevel": 1,
+      "maxItemLevel": 99,
+      "dropWeight": 250
+    },
+    {
+      "id": "caracatoa-bronze-couraca-galope-celeste",
+      "clientItemId": 8224,
+      "name": "Couraça do Galope Celeste (Bronze)",
+      "itemType": "chest",
+      "minItemLevel": 1,
+      "maxItemLevel": 99,
+      "dropWeight": 250
+    },
+    {
+      "id": "caracatoa-bronze-couraca-brasa-renascida",
+      "clientItemId": 8222,
+      "name": "Couraça da Brasa Renascida (Bronze)",
+      "itemType": "chest",
+      "minItemLevel": 1,
+      "maxItemLevel": 99,
+      "dropWeight": 250
+    },
+    {
+      "id": "caracatoa-silver-couraca-falcao-boreal",
+      "clientItemId": 8228,
+      "name": "Couraça do Falcão Boreal (Prata)",
+      "itemType": "chest",
+      "minItemLevel": 100,
+      "maxItemLevel": 249,
+      "dropWeight": 300
+    },
+    {
+      "id": "caracatoa-silver-couraca-serpe-argentea",
+      "clientItemId": 8227,
+      "name": "Couraça da Serpe Argêntea (Prata)",
+      "itemType": "chest",
+      "minItemLevel": 100,
+      "maxItemLevel": 249,
+      "dropWeight": 300
+    },
+    {
+      "id": "caracatoa-silver-couraca-eco-harmonico",
+      "clientItemId": 8226,
+      "name": "Couraça do Eco Harmônico (Prata)",
+      "itemType": "chest",
+      "minItemLevel": 100,
+      "maxItemLevel": 249,
+      "dropWeight": 300
+    },
+    {
+      "id": "caracatoa-silver-couraca-reflexo-imovel",
+      "clientItemId": 8225,
+      "name": "Couraça do Reflexo Imóvel (Prata)",
+      "itemType": "chest",
+      "minItemLevel": 100,
+      "maxItemLevel": 249,
+      "dropWeight": 300
+    },
+    {
+      "id": "caracatoa-gold-couraca-asas-do-regente",
+      "clientItemId": 8232,
+      "name": "Couraça das Asas do Regente (Ouro)",
+      "itemType": "chest",
+      "minItemLevel": 250,
+      "maxItemLevel": 400,
+      "dropWeight": 160
+    },
+    {
+      "id": "caracatoa-gold-couraca-ferrao-carmesim",
+      "clientItemId": 8231,
+      "name": "Couraça do Ferrão Carmesim (Ouro)",
+      "itemType": "chest",
+      "minItemLevel": 250,
+      "maxItemLevel": 400,
+      "dropWeight": 160
+    },
+    {
+      "id": "caracatoa-gold-couraca-quietude-dourada",
+      "clientItemId": 8230,
+      "name": "Couraça da Quietude Dourada (Ouro)",
+      "itemType": "chest",
+      "minItemLevel": 250,
+      "maxItemLevel": 400,
+      "dropWeight": 160
+    },
+    {
+      "id": "caracatoa-gold-couraca-fio-juramentado",
+      "clientItemId": 8229,
+      "name": "Couraça do Fio Juramentado (Ouro)",
+      "itemType": "chest",
+      "minItemLevel": 250,
+      "maxItemLevel": 400,
+      "dropWeight": 160
+    }
+  ],
+  "itemPools": {
+    "starter": [
+      "caracatoa-ferro-votivo",
+      "caracatoa-elmo-da-bruma",
+      "caracatoa-peitoral-de-cobre",
+      "caracatoa-grevas-de-cobre",
+      "caracatoa-botas-do-viajante",
+      "caracatoa-bronze-elmo-do-vigia-errante",
+      "caracatoa-bronze-grevas-do-caminho-celeste",
+      "caracatoa-bronze-botas-da-orbita-rubra",
+      "caracatoa-bronze-couraca-elos-da-sentinela",
+      "caracatoa-bronze-couraca-veu-mutavel",
+      "caracatoa-bronze-couraca-galope-celeste",
+      "caracatoa-bronze-couraca-brasa-renascida"
+    ],
+    "adventure": [
+      "caracatoa-ferro-votivo",
+      "caracatoa-martelo-do-baluarte",
+      "caracatoa-arco-da-trilha",
+      "caracatoa-cajado-do-eco",
+      "caracatoa-elmo-da-bruma",
+      "caracatoa-peitoral-de-cobre",
+      "caracatoa-grevas-de-cobre",
+      "caracatoa-manoplas-de-cobre",
+      "caracatoa-botas-do-viajante",
+      "caracatoa-capa-da-aurora",
+      "caracatoa-amuletos-da-fenda",
+      "caracatoa-anel-dos-vigias",
+      "caracatoa-silver-elmo-do-veu-lunar",
+      "caracatoa-silver-grevas-da-mare-estelar",
+      "caracatoa-silver-botas-do-horizonte-frio",
+      "caracatoa-silver-couraca-falcao-boreal",
+      "caracatoa-silver-couraca-serpe-argentea",
+      "caracatoa-silver-couraca-eco-harmonico",
+      "caracatoa-silver-couraca-reflexo-imovel"
+    ],
+    "dangerous": [
+      "caracatoa-ferro-votivo",
+      "caracatoa-martelo-do-baluarte",
+      "caracatoa-arco-da-trilha",
+      "caracatoa-cajado-do-eco",
+      "caracatoa-elmo-da-bruma",
+      "caracatoa-peitoral-de-cobre",
+      "caracatoa-grevas-de-cobre",
+      "caracatoa-manoplas-de-cobre",
+      "caracatoa-botas-do-viajante",
+      "caracatoa-capa-da-aurora",
+      "caracatoa-amuletos-da-fenda",
+      "caracatoa-anel-dos-vigias",
+      "caracatoa-manto-de-yeti",
+      "caracatoa-gold-elmo-da-coroa-solar",
+      "caracatoa-gold-grevas-dos-doze-claroes",
+      "caracatoa-gold-botas-do-zenite",
+      "caracatoa-gold-couraca-asas-do-regente",
+      "caracatoa-gold-couraca-ferrao-carmesim",
+      "caracatoa-gold-couraca-quietude-dourada",
+      "caracatoa-gold-couraca-fio-juramentado"
+    ]
+  },
+  "itemDefinitions": {
+    "caracatoa-racao-de-campo": {
+      "clientItemId": 8101,
+      "displayName": "Ração de Campo",
+      "stackLimit": 99,
+      "category": "mount-feed",
+      "stackCount": 1
+    },
+    "caracatoa-poeira-de-oriharucon": {
+      "clientItemId": 8102,
+      "displayName": "Poeira de Oriharucon",
+      "stackLimit": 99,
+      "category": "refinement-material",
+      "stackCount": 1
+    },
+    "caracatoa-fragmento-de-lactolerium": {
+      "clientItemId": 8103,
+      "displayName": "Fragmento de Lactolerium",
+      "stackLimit": 99,
+      "category": "refinement-material",
+      "stackCount": 1
+    },
+    "caracatoa-minerio-brumoso": {
+      "clientItemId": 8104,
+      "displayName": "Minério Brumoso",
+      "stackLimit": 99,
+      "category": "crafting-material",
+      "stackCount": 1
+    },
+    "caracatoa-couro-de-yeti": {
+      "clientItemId": 8105,
+      "displayName": "Couro de Yeti",
+      "stackLimit": 99,
+      "category": "crafting-material",
+      "stackCount": 1
+    },
+    "caracatoa-selo-do-abismo": {
+      "clientItemId": 8106,
+      "displayName": "Selo do Abismo",
+      "stackLimit": 20,
+      "category": "boss-material",
+      "stackCount": 1
+    },
+    "caracatoa-equipamento-selado": {
+      "clientItemId": 8107,
+      "displayName": "Equipamento Selado",
+      "stackLimit": 1,
+      "category": "equipment-cache",
+      "stackCount": 1
+    },
+    "caracatoa-pedra-do-sabio": {
+      "clientItemId": 8108,
+      "displayName": "Pedra do Sábio",
+      "stackLimit": 99,
+      "category": "refinement-material",
+      "stackCount": 1
+    },
+    "caracatoa-poeira-divina": {
+      "clientItemId": 8109,
+      "displayName": "Poeira Divina",
+      "stackLimit": 99,
+      "category": "refinement-material",
+      "stackCount": 1
+    },
+    "caracatoa-pedra-secreta-agua": {
+      "clientItemId": 8110,
+      "displayName": "Pedra Secreta da Água",
+      "stackLimit": 99,
+      "category": "refinement-material",
+      "stackCount": 1
+    },
+    "caracatoa-pedra-secreta-terra": {
+      "clientItemId": 8111,
+      "displayName": "Pedra Secreta da Terra",
+      "stackLimit": 99,
+      "category": "refinement-material",
+      "stackCount": 1
+    },
+    "caracatoa-pedra-secreta-sol": {
+      "clientItemId": 8112,
+      "displayName": "Pedra Secreta do Sol",
+      "stackLimit": 99,
+      "category": "refinement-material",
+      "stackCount": 1
+    },
+    "caracatoa-pedra-secreta-vento": {
+      "clientItemId": 8113,
+      "displayName": "Pedra Secreta do Vento",
+      "stackLimit": 99,
+      "category": "refinement-material",
+      "stackCount": 1
+    },
+    "caracatoa-fragmento-do-altar": {
+      "clientItemId": 8114,
+      "displayName": "Fragmento do Altar",
+      "stackLimit": 20,
+      "category": "stage-ritual-material",
+      "stackCount": 1
+    }
+  },
+  "lootTables": {
+    "field-common": {
+      "monsterProfile": "common",
+      "zoneProfile": "standard",
+      "itemPool": "starter",
+      "maxDropsPerKill": 5,
+      "entries": [
+        {
+          "kind": "item",
+          "itemId": "caracatoa-racao-de-campo",
+          "baseChanceBps": 1200,
+          "minCount": 1,
+          "maxCount": 2
+        },
+        {
+          "kind": "item",
+          "itemId": "caracatoa-minerio-brumoso",
+          "baseChanceBps": 650,
+          "minCount": 1,
+          "maxCount": 1
+        },
+        {
+          "kind": "item",
+          "itemId": "caracatoa-poeira-de-oriharucon",
+          "baseChanceBps": 350,
+          "minCount": 1,
+          "maxCount": 1
+        },
+        {
+          "kind": "item",
+          "itemId": "caracatoa-fragmento-de-lactolerium",
+          "baseChanceBps": 25,
+          "minCount": 1,
+          "maxCount": 1
+        },
+        {
+          "kind": "item",
+          "itemId": "caracatoa-selo-do-abismo",
+          "baseChanceBps": 100,
+          "minCount": 1,
+          "maxCount": 1
+        },
+        {
+          "kind": "item",
+          "itemId": "caracatoa-pedra-do-sabio",
+          "baseChanceBps": 5,
+          "minCount": 1,
+          "maxCount": 1
+        },
+        {
+          "kind": "item",
+          "itemId": "caracatoa-fragmento-do-altar",
+          "baseChanceBps": 1,
+          "minCount": 1,
+          "maxCount": 1
+        },
+        {
+          "kind": "equipment",
+          "baseChanceBps": 100
+        }
+      ]
+    },
+    "adventure-elite": {
+      "monsterProfile": "elite",
+      "zoneProfile": "standard",
+      "itemPool": "adventure",
+      "maxDropsPerKill": 4,
+      "entries": [
+        {
+          "kind": "item",
+          "itemId": "caracatoa-racao-de-campo",
+          "baseChanceBps": 2200,
+          "minCount": 1,
+          "maxCount": 3
+        },
+        {
+          "kind": "item",
+          "itemId": "caracatoa-poeira-de-oriharucon",
+          "baseChanceBps": 280,
+          "minCount": 1,
+          "maxCount": 1
+        },
+        {
+          "kind": "equipment",
+          "baseChanceBps": 100
+        }
+      ]
+    },
+    "dangerous-boss": {
+      "monsterProfile": "boss",
+      "zoneProfile": "dangerous",
+      "itemPool": "dangerous",
+      "maxDropsPerKill": 5,
+      "entries": [
+        {
+          "kind": "item",
+          "itemId": "caracatoa-racao-de-campo",
+          "baseChanceBps": 500,
+          "minCount": 2,
+          "maxCount": 4
+        },
+        {
+          "kind": "item",
+          "itemId": "caracatoa-fragmento-de-lactolerium",
+          "baseChanceBps": 150,
+          "minCount": 1,
+          "maxCount": 1
+        },
+        {
+          "kind": "item",
+          "itemId": "caracatoa-couro-de-yeti",
+          "baseChanceBps": 300,
+          "minCount": 1,
+          "maxCount": 2
+        },
+        {
+          "kind": "item",
+          "itemId": "caracatoa-selo-do-abismo",
+          "baseChanceBps": 50,
+          "minCount": 1,
+          "maxCount": 1
+        },
+        {
+          "kind": "equipment",
+          "baseChanceBps": 100
+        }
+      ]
+    }
+  },
+  "monsterLootTableAssignments": {
+    "golem-pedra": "field-common"
+  }
+}

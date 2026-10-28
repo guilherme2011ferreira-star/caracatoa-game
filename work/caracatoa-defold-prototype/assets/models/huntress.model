@@ -1,0 +1,59 @@
+mesh: "/assets/models/huntress.glb"
+name: "caracatoa_huntress"
+materials {
+  name: "bronzeLight"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/huntress_bronzeLight.png"
+  }
+}
+materials {
+  name: "darkSteel"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/huntress_darkSteel.png"
+  }
+}
+materials {
+  name: "gold"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/huntress_gold.png"
+  }
+}
+materials {
+  name: "ivory"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/huntress_ivory.png"
+  }
+}
+materials {
+  name: "leather"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/huntress_leather.png"
+  }
+}
+materials {
+  name: "red"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/huntress_red.png"
+  }
+}
+materials {
+  name: "skin"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/huntress_skin.png"
+  }
+}
+create_go_bones: false

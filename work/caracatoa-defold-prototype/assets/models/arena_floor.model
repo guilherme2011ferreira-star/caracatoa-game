@@ -1,0 +1,27 @@
+mesh: "/assets/models/arena_floor.glb"
+name: "caracatoa_arena_floor"
+materials {
+  name: "earth"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/arena_floor_earth.png"
+  }
+}
+materials {
+  name: "moss"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/arena_floor_moss.png"
+  }
+}
+materials {
+  name: "path"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/arena_floor_path.png"
+  }
+}
+create_go_bones: false

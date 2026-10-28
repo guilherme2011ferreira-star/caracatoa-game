@@ -1,0 +1,248 @@
+local AVATAR_IDS = { "transknight", "foema", "beastmaster", "huntress" }
+local PREVIEW_X = { -2.5, -0.85, 0.85, 2.5 }
+local CREATOR_X = { -3.3, -2.0, -0.7, 0.6 }
+local AVATAR_FLOOR_Y = 0.0
+local MONSTER_FLOOR_Y = -0.08
+local HIDDEN_POSITION = vmath.vector3(0, -1000, 0)
+local TOWN_POSITION = vmath.vector3(0, -0.1, 0)
+local ALTAR_POSITION = vmath.vector3(0, 0, 0)
+local TILE_TO_SCENE_UNITS = 1.0
+local MOVE_REQUEST_INTERVAL = 0.18
+local MOVE_STEP_DURATION = MOVE_REQUEST_INTERVAL
+
+local function movement_yaw(dx, dy)
+	local scene_dz = -dy
+	if dx == 0 and scene_dz == 0 then return nil end
+	return math.deg(math.atan2(dx, scene_dz))
+end
+
+local function show_town()
+  go.set_position(TOWN_POSITION, "arena")
+  go.set_position(HIDDEN_POSITION, "altar")
+end
+
+local function show_altar()
+  go.set_position(HIDDEN_POSITION, "arena")
+  go.set_position(ALTAR_POSITION, "altar")
+end
+local function set_pressed(self, action_id, action)
+	local pressed = action.value ~= nil and action.value ~= 0
+	if action_id == hash("forward") then
+		self.forward = pressed
+	elseif action_id == hash("back") then
+		self.back = pressed
+	elseif action_id == hash("left") then
+		self.left = pressed
+	elseif action_id == hash("right") then
+		self.right = pressed
+	else
+		return false
+	end
+	return true
+end
+
+local function direction_code(dx, dy)
+	if dx == -1 and dy == -1 then return 0x31 end
+	if dx == 0 and dy == -1 then return 0x32 end
+	if dx == 1 and dy == -1 then return 0x33 end
+	if dx == -1 and dy == 0 then return 0x34 end
+	if dx == 1 and dy == 0 then return 0x36 end
+	if dx == -1 and dy == 1 then return 0x37 end
+	if dx == 0 and dy == 1 then return 0x38 end
+	if dx == 1 and dy == 1 then return 0x39 end
+	return nil
+end
+
+local function clear_direction(self)
+	self.forward = false
+	self.back = false
+	self.left = false
+	self.right = false
+end
+
+local function has_direction(self)
+	return self.forward or self.back or self.left or self.right
+end
+
+local function set_avatar_animation(self, animation)
+	if not self.avatar_id or self.current_animation == animation then return end
+	self.current_animation = animation
+	msg.post("/" .. self.avatar_id .. "#avatar_animation", "set_avatar_animation", { animation = animation })
+end
+
+local function set_authoritative_position(self, x, y)
+	if not self.world_active or not self.avatar_id then return end
+	local dx = self.world_x and (x - self.world_x) or 0
+	local dy = self.world_y and (y - self.world_y) or 0
+	local yaw = movement_yaw(dx, dy)
+	if yaw ~= nil then self.facing_yaw = yaw end
+	self.world_x = x
+	self.world_y = y
+	local scene_x = (x - self.spawn_x) * TILE_TO_SCENE_UNITS
+	local scene_z = -(y - self.spawn_y) * TILE_TO_SCENE_UNITS
+	local position = vmath.vector3(scene_x, AVATAR_FLOOR_Y, scene_z)
+	go.animate("/" .. self.avatar_id, "position", go.PLAYBACK_ONCE_FORWARD, position, go.EASING_LINEAR, MOVE_STEP_DURATION)
+	go.animate("/" .. self.avatar_id, "rotation", go.PLAYBACK_ONCE_FORWARD, vmath.quat_rotation_y(math.rad(self.facing_yaw or 0)), go.EASING_OUTQUAD, math.min(MOVE_STEP_DURATION, 0.12))
+	msg.post("/" .. self.avatar_id .. "#avatar_animation", "world_anchor_updated", { x = scene_x, y = AVATAR_FLOOR_Y, z = scene_z, yaw = self.facing_yaw or 0 })
+	msg.post("/camera#preview_camera", "world_follow", { x = scene_x, z = scene_z })
+end
+
+local function set_monster_position(self, x, y)
+	if not self.world_active or not self.spawn_x or not self.spawn_y then return end
+	local position = vmath.vector3((x - self.spawn_x) * TILE_TO_SCENE_UNITS, MONSTER_FLOOR_Y, -(y - self.spawn_y) * TILE_TO_SCENE_UNITS)
+	go.set_position(position, "stone_monster")
+end
+
+local function restore_preview(self, keep_creator_camera)
+	if self.input_enabled then msg.post(".", "release_input_focus") end
+	self.input_enabled = false
+	self.world_active = false
+	self.awaiting_authority = false
+	self.avatar_id = nil
+	self.current_animation = nil
+	self.mob_index = nil
+	self.spawn_x = nil
+	self.spawn_y = nil
+	self.world_x = nil
+	self.world_y = nil
+	self.facing_yaw = 0
+	self.request_elapsed = 0
+	clear_direction(self)
+	for index, avatar_id in ipairs(AVATAR_IDS) do
+		go.set_position(vmath.vector3(PREVIEW_X[index], AVATAR_FLOOR_Y, 0), avatar_id)
+		if not keep_creator_camera then
+			msg.post("/" .. avatar_id .. "#avatar_animation", "creator_overview")
+		end
+	end
+	go.set_position(HIDDEN_POSITION, "stone_monster")
+	show_town()
+	if not keep_creator_camera then
+		msg.post("/camera#preview_camera", "selection_overview")
+	end
+end
+
+local function hide_preview(self)
+	restore_preview(self)
+	for _, avatar_id in ipairs(AVATAR_IDS) do
+		go.set_position(HIDDEN_POSITION, avatar_id)
+	end
+end
+
+function init(self)
+	self.input_enabled = false
+	self.world_active = false
+	self.awaiting_authority = false
+	self.current_animation = nil
+	self.facing_yaw = 0
+	self.request_elapsed = 0
+	clear_direction(self)
+	for _, avatar_id in ipairs(AVATAR_IDS) do
+		-- The title and roster screens start empty. The creator explicitly restores
+		-- the four class previews after the player opens character creation.
+		go.set_position(HIDDEN_POSITION, avatar_id)
+	end
+	go.set_position(HIDDEN_POSITION, "stone_monster")
+	show_town()
+end
+
+function on_input(self, action_id, action)
+	if not self.input_enabled then return end
+	if set_pressed(self, action_id, action) then return true end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("access_hide") then
+		hide_preview(self)
+		go.set_position(HIDDEN_POSITION, "arena")
+		go.set_position(HIDDEN_POSITION, "altar")
+	elseif message_id == hash("preview_hide") then
+		hide_preview(self)
+	elseif message_id == hash("creator_show") then
+		restore_preview(self, true)
+		for index, avatar_id in ipairs(AVATAR_IDS) do
+			go.set_position(vmath.vector3(CREATOR_X[index], AVATAR_FLOOR_Y, 0), avatar_id)
+		end
+		show_altar()
+		msg.post("/camera#preview_camera", "creator_lineup")
+	elseif message_id == hash("world_bootstrap") then
+		local class_id = message.class_id
+		local mob_index = message.mob_index
+		if type(class_id) ~= "number" or class_id < 0 or class_id > 3 or class_id ~= math.floor(class_id) or
+			type(mob_index) ~= "number" or mob_index < 1 or mob_index > 0xffff or mob_index ~= math.floor(mob_index) or
+			type(message.x) ~= "number" or message.x ~= math.floor(message.x) or
+			type(message.y) ~= "number" or message.y ~= math.floor(message.y) then
+			return
+		end
+		show_town()
+		if self.input_enabled then msg.post(".", "release_input_focus") end
+		clear_direction(self)
+		self.world_active = true
+		self.input_enabled = true
+		self.awaiting_authority = false
+		self.request_elapsed = MOVE_REQUEST_INTERVAL
+		self.avatar_id = AVATAR_IDS[class_id + 1]
+		self.current_animation = nil
+		self.mob_index = mob_index
+		self.spawn_x = message.x
+		self.spawn_y = message.y
+		for _, avatar_id in ipairs(AVATAR_IDS) do
+			if avatar_id ~= self.avatar_id then go.set_position(HIDDEN_POSITION, avatar_id) end
+		end
+		go.set_position(vmath.vector3(0, AVATAR_FLOOR_Y, 0), self.avatar_id)
+		set_authoritative_position(self, message.x, message.y)
+		msg.post(".", "acquire_input_focus")
+	elseif message_id == hash("world_move_confirmed") then
+		set_authoritative_position(self, message.x, message.y)
+		self.awaiting_authority = false
+		set_avatar_animation(self, has_direction(self) and "Walk_Loop" or "Idle_Loop")
+	elseif message_id == hash("world_move_rejected") then
+		self.awaiting_authority = false
+		set_avatar_animation(self, "Idle_Loop")
+	elseif message_id == hash("world_target_updated") then
+		if message.visible and message.current_hp and message.current_hp > 0 then
+			set_monster_position(self, message.x, message.y)
+		else
+			go.set_position(HIDDEN_POSITION, "stone_monster")
+		end
+	elseif message_id == hash("world_attack_confirmed") then
+		if not self.world_active or not self.avatar_id or type(message.target_x) ~= "number" or type(message.target_y) ~= "number" then return end
+		local dx = message.target_x - self.world_x
+		local dy = message.target_y - self.world_y
+		local yaw = movement_yaw(dx, dy)
+		if yaw == nil then yaw = self.facing_yaw or 0 end
+		-- Face a stationary strike toward its confirmed target. During movement,
+		-- preserve the rotation owned by the authoritative step interpolation.
+		if not has_direction(self) and not self.awaiting_authority then
+			self.facing_yaw = yaw
+			go.animate("/" .. self.avatar_id, "rotation", go.PLAYBACK_ONCE_FORWARD,
+				vmath.quat_rotation_y(math.rad(yaw)), go.EASING_OUTQUAD, 0.10)
+		end
+		msg.post("/" .. self.avatar_id .. "#avatar_animation", "combat_attack", {
+			yaw = yaw,
+			dx = dx,
+			dz = -dy,
+			animation = self.avatar_id == "foema" and hash("Caracatoa_Foema_Cast")
+				or self.avatar_id == "beastmaster" and hash("Caracatoa_BM_Heavy")
+				or self.avatar_id == "huntress" and hash("Caracatoa_HT_Shot")
+				or hash("Caracatoa_TK_Slash"),
+		})
+	elseif message_id == hash("world_reset") then
+		restore_preview(self)
+	end
+end
+
+function update(self, dt)
+	if not self.input_enabled or not self.world_active then return end
+	self.request_elapsed = math.min(self.request_elapsed + dt, MOVE_REQUEST_INTERVAL)
+	if self.awaiting_authority or self.request_elapsed < MOVE_REQUEST_INTERVAL then return end
+	local dx = (self.right and 1 or 0) - (self.left and 1 or 0)
+	local dy = (self.forward and 1 or 0) - (self.back and 1 or 0)
+	local code = direction_code(dx, dy)
+	if not code then
+		set_avatar_animation(self, "Idle_Loop")
+		return
+	end
+	self.request_elapsed = 0
+	self.awaiting_authority = true
+	msg.post("/local_connection#connection", "world_move_request", { direction_code = code })
+end

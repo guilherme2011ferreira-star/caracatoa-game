@@ -1,0 +1,179 @@
+# Etapas de gameplay do Caracatoa
+
+Este plano usa a ADR 0347. Cada etapa termina com uma build/local preview,
+testes técnicos e um roteiro para o usuário. **A próxima etapa só começa após
+a aprovação explícita da etapa atual.** A build e os testes ficam limitados ao
+servidor Caracatoa em `127.0.0.1`.
+
+## Como validar cada etapa
+
+1. Eu implemento uma fatia vertical e preparo uma build reproduzível.
+2. Rodo os testes automáticos adequados e informo comandos, resultados e
+   limitações.
+3. Entrego um roteiro curto de gameplay para você testar no cliente.
+4. Você testa e aprova ou descreve o que precisa mudar. Sem aprovação, corrijo
+   a etapa atual e preparo outra build.
+
+Uma aprovação de arte 3D também pode ser pedida antes de integrar aquele asset
+ao jogo. Um teste automatizado aprovado não conta como aprovação visual ou de
+gameplay.
+
+### Ficha de retorno do playtest
+
+Depois de testar, você pode responder com este formato simples:
+
+```text
+Etapa: [número e nome]
+Resultado: [aprovar / corrigir / ainda testando]
+Funcionou: [passos que deram certo]
+Problemas: [o que falhou ou ficou estranho]
+Visual e sensação: [opinião sobre câmera, controles, leitura e aparência]
+```
+
+Se indicar **corrigir**, continuo na mesma etapa, resolvo os itens apontados e
+preparo outra build com os testes correspondentes. Só marco a etapa como
+aprovada quando você disser explicitamente que aprovou; em seguida começo a
+próxima. Se responder **ainda testando**, mantenho o marco aberto e aguardo seu
+resultado, sem iniciar a etapa seguinte.
+
+## Sequência de etapas
+
+| Etapa | Escopo jogável | Verificações técnicas | O que você avalia | Estado |
+|---|---|---|---|---|
+| 1. Acesso e primeiro personagem | Cadastro local, login, senha secundária, lista vazia, seleção de classe, nome/história/atributos, personagem 3D e entrada no Bastião | API de cadastro (válido, inválido, duplicado); autenticação/PIN; persistência e reentrada do personagem; E2E de cada classe; build Defold | Criar conta, entrar, criar personagem, conferir modelo e ficha, entrar na cidade e confirmar que a sessão continua funcionando | **Etapa atual — aguardando sua avaliação manual** |
+| 2. Cidade inicial | Câmera, caminhada, limites, colisões, pontos seguros, NPCs e Golem | Testes de navegação e colisão autoritativa, reconexão/posição, fixture de spawn; build | Caminhar pelo Bastião, testar bordas/portão, encontrar NPCs e Golem e avaliar escala/leitura da cidade | Aguardando etapa 1 |
+| 3. Combate básico | Ataque, HP/MP, alvo, morte/retorno e habilidade inicial das quatro classes | Fórmulas, alcance, custo/recarga, dano/cura/defesa, persistência e sincronização em loopback | Lutar com cada classe, observar resposta visual e validar se ataques e habilidades são compreensíveis | Aguardando etapa 2 |
+| 4. Progressão | EXP, níveis, atributos, pontos de skill e ramos de classe; ritual de estágio em fatia inicial | Limites e fórmulas, persistência, reconexão, testes de evolução | Ganhar nível, distribuir pontos e testar escolhas de habilidade | Aguardando etapa 3 |
+| 5. Itens e equipamento | Loot, inventário, equipamento, afixos e refinamento; armaduras Astrais após aprovação do modelo | Tabelas de loot, caps, claims idempotentes, equipar/remover, +1 a +15 e salvamento | Obter, comparar, equipar, refinar e conferir aparência/atributos | Aguardando etapa 4 e aprovação visual das armaduras |
+| 6. Montarias | Ovo, incubação, ração, bônus, montar/desmontar e evolução | Ciclo de vida, fome/vida, bônus e persistência | Chocar, alimentar, montar e confirmar bônus e leitura visual | Aguardando etapa 5 |
+| 7. Economia e social | Gold, banco, troca, lojas, guildas e reinos Red/Blue em fatias testáveis | Atomicidade de transação, prevenção de duplicação, auditoria e autorização | Negociar e usar sistemas sociais sem perder ou duplicar itens | Aguardando etapa 6 |
+| 8. Expansão e guerras | Novos mapas/biomas, monstros/bosses, eventos e PvP/guerras | Spawns, balanceamento, testes de combate em grupo, limites de mapa e carga local | Explorar regiões e testar eventos/combate em grupo | Aguardando etapa 7 |
+
+## Marcos de base já presentes no código
+
+Banco SQLite, contas/personagens, listener local, catálogos e parte dos sistemas
+de itens, progressão, montarias e cidade já existem e têm testes sintéticos.
+Isso é infraestrutura implementada, não aprovação das oito etapas de gameplay.
+O único cenário 3D explicitamente elogiado pelo usuário é o Portão Astral; as
+armaduras GLB atuais foram criticadas e permanecem fora do cliente.
+
+## Estado da etapa atual
+
+- O endpoint local de cadastro tem testes automatizados de cadastro válido,
+  dados inválidos, duplicidade e autenticação subsequente. Uma integração
+  adicional sobe `server.mjs` completo em portas efêmeras de loopback e conecta
+  o cadastro HTTP ao listener de jogo da mesma instância/base SQLite. O teste
+  também confirma que PIN incorreto recebe recusa `0xfdf` sem liberar o roster;
+  o PIN válido libera a lista vazia e permite criar um personagem de cada classe
+  nos slots 0–3, confirmando IDs, nomes e roster persistido. Sessões separadas
+  entram no Bastião com as quatro classes em seus slots e conferem os estados
+  `0x114`, nomes e posição inicial. A sessão Foema também caminha até (129,128),
+  reconecta e confirma roster, personagem e posição salvos.
+- O roteiro `tools/verify-local-session.mjs` exercita cliente, sessão e servidor
+  sintéticos em loopback para as quatro classes. Isso não comprova interação
+  manual com a janela.
+- A build atual passou o handshake sintético e as quatro sessões E2E de classe.
+  O teste encontrou que a expectativa antiga de `Impacto Celeste` somava dano
+  físico da arma/armadura ao poder mágico. A fórmula Caracatoa separa os dois;
+  o teste agora espera 25 de dano mágico na fixture e confirma persistência e
+  sincronização.
+- O registro de inspeção visual disponível cobre a tela de entrada. Criação de
+  conta, criação/seleção de personagem, modelos 3D e entrada na cidade ainda
+  precisam da sua conferência no cliente.
+- A prévia das armaduras foi rejeitada pelo usuário. Não integrar esses GLBs;
+  mostrar uma revisão visual isolada para aprovação antes de incluí-los na
+  etapa de itens.
+
+### Roteiro de teste manual da etapa 1
+
+1. Para não gravar credenciais de teste na base persistente, fechar qualquer
+   janela do cliente e abrir o sandbox descrito no
+   [`README do cliente`](../../work/caracatoa-defold-prototype/README.md). Ele
+   inicia servidor e bancos vazios em portas loopback temporárias e apaga os
+   dados ao fechar o jogo.
+2. Na criação da conta, teste IDs começando com `.`, `_` e `-`; cada tentativa
+   deve mostrar a validação local e não prosseguir. Depois, cadastre uma conta
+   de teste com o ID começando por letra ou número.
+3. Sair e entrar com essa conta; confirmar que uma senha secundária/PIN é
+   solicitada e que o PIN incorreto não libera o roster.
+4. Com o roster vazio, abrir criação; alternar entre TransKnight, Foema,
+   BeastMaster e Huntress e conferir foco de câmera, modelo, história,
+   atributos e campo de nome.
+5. Criar um personagem, entrar no Bastião, movimentar-se alguns passos e sair.
+6. Entrar novamente e confirmar que o personagem e sua posição/estado foram
+   mantidos.
+
+O relatório da build desta etapa deve indicar quais passos passaram, quais
+falharam e capturas que mostrem somente estado sintético/sem credenciais.
+
+### Revalidação técnica — 27/10/2026
+
+- Build Defold 1.14.0 Windows x64 concluída em
+  `work/caracatoa-defold-prototype/build-current-local-validation/`.
+- `node --test --test-reporter=spec .\player-account-admin.test.mjs` em
+  `server/caracatoa`: passou (cadastro válido, inválido/duplicado e autenticação
+  posterior cobertos dentro do teste; a extensão integra o cadastro HTTP ao
+  login/PIN/socket, cria personagem, caminha, reconecta e confirma a posição
+  persistida no retorno ao mundo).
+- `node .\tools\verify-local-frame-loopback.mjs <Caracatoa3DPreview.exe>`:
+  passou; inclui fragmentação/coalescência, checksum inválido e handshake
+  somente em loopback.
+- `node .\tools\verify-local-session.mjs <Caracatoa3DPreview.exe> --class=N`
+  para N=0,1,2,3: quatro classes passaram em armazenamento temporário, com
+  cadastro sintético de sessão, PIN, personagem, entrada no mapa, movimento e
+  habilidade. Não são as credenciais da sua conta e não foram registradas.
+- A prévia foi aberta para a avaliação manual. O servidor Caracatoa e o painel
+  já estavam ativos em `127.0.0.1:8289` e `127.0.0.1:8765`; use uma conta de
+  teste que você escolher. O cadastro nessa instância grava no estado local já
+  ativo, não no armazenamento temporário das fixtures.
+- **Etapa 1 segue aguardando seu teste/aprovação.** Cadastro pela UI, PIN real,
+  criação visual dos quatro personagens, modelo/pose, entrada e leitura da
+  cidade não foram confirmados manualmente. A build também avisa que o harness
+  externo de fixtures de protocolo está ausente e manteve os recursos
+  versionados; isso não bloqueou o build nem os testes acima.
+
+#### Revalidação da integração com o servidor completo — 27/10/2026
+
+- Um reteste inicial encontrou uma falha no fixture: o servidor de teste usa
+  `CARACATOA_DATA_DIR` temporário e o teste não copiava o `itemization.json`
+  obrigatório para resolver o equipamento inicial. O fixture agora copia esse
+  arquivo; não foi preciso contornar ou enfraquecer validações de gameplay.
+- O listener agora marca a etapa genérica de persistência que falhou usando
+  rótulos estáticos (por exemplo, leitura de equipamento), sem imprimir
+  exceções SQLite, contas, senhas ou PINs nos logs. O teste mostra os eventos
+  recentes `[jogo]` com credenciais sintéticas redigidas em caso de falha e,
+  após encerrar o processo, verifica que senhas/PINs de todas as sessões
+  sintéticas não apareceram em stdout ou stderr.
+- Comando focal em `server/caracatoa`:
+
+  ```powershell
+  node --check .\server.mjs
+  node --check .\game-listener.mjs
+  node --check .\player-account-admin.test.mjs
+  node --test --test-reporter=spec .\player-account-admin.test.mjs .\game-listener.test.mjs .\wyd-727-world-entry.test.mjs .\caracatoa-native-navigation.test.mjs
+  ```
+
+  Resultado: **10/10 testes passaram**, incluindo cadastro HTTP, login e PIN
+  pelo `server.mjs` real em porta efêmera, recusa do PIN inválido sem roster,
+  criação e entrada no mundo das quatro classes/slots, mais movimento e
+  reconexão da Foema em (129,128).
+- A build Windows x64 existente voltou a passar o harness de frames e as quatro
+  sessões E2E de classe em armazenamento temporário. Isso valida os caminhos
+  locais da build/servidor, mas a avaliação de formulários, modelos, animações,
+  câmera e sensação de jogo continua manual.
+- Portanto, a etapa continua **aguardando seu playtest e aprovação explícita**;
+  o gate de aprovação da etapa 2 segue fechado. A navegação do mapa 001 já
+  existia como infraestrutura anterior; esta revisão não inicia uma nova fatia
+  de gameplay da etapa 2.
+
+#### Suíte completa do servidor — 27/10/2026
+
+```powershell
+$testFiles = @(Get-ChildItem -LiteralPath . -Filter '*.test.mjs' -File | ForEach-Object { $_.FullName })
+node --test --test-reporter=dot $testFiles
+```
+
+Resultado: **214 testes em 50 arquivos passaram**. A validação integrada
+entrou no mundo com os quatro IDs de classe pelo `server.mjs` completo e
+confirmou que credenciais sintéticas não aparecem nos logs após o fluxo e a
+reconexão. A avaliação de UI, modelos e gameplay manual ainda está pendente.

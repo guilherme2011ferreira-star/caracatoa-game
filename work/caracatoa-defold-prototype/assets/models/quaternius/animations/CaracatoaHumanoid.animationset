@@ -1,0 +1,19 @@
+animations {
+	animation: "/assets/models/quaternius/animations/clips/Idle_Loop.glb"
+}
+animations {
+	animation: "/assets/models/quaternius/animations/clips/Walk_Loop.glb"
+}
+animations {
+	animation: "/assets/models/quaternius/animations/clips/Caracatoa_TK_Slash.glb"
+}
+animations {
+	animation: "/assets/models/quaternius/animations/clips/Caracatoa_Foema_Cast.glb"
+}
+animations {
+	animation: "/assets/models/quaternius/animations/clips/Caracatoa_BM_Heavy.glb"
+}
+animations {
+	animation: "/assets/models/quaternius/animations/clips/Caracatoa_HT_Shot.glb"
+}
+skeleton: "/assets/models/quaternius/outfits/Male_Ranger.gltf"

@@ -1,0 +1,467 @@
+{
+  "engine": "Defold 1.14.0 x86_64",
+  "source": "shared Caracatoa synthetic GLBs",
+  "models": [
+    {
+      "file": "transknight.glb",
+      "sha256": "9ac1ffd5d5f4853b717b29e73775ad039abe367f6fd6e3d21beab2916a6ce1de",
+      "bytes": 41896,
+      "meshes": 20,
+      "materials": [
+        "bronze",
+        "bronzeLight",
+        "darkSteel",
+        "gold",
+        "leather",
+        "skin",
+        "steel"
+      ],
+      "triangles": 976
+    },
+    {
+      "file": "foema.glb",
+      "sha256": "0356c53494cb0d37f500815bbf3a58165f9d96296d28c675a19687e7a054045e",
+      "bytes": 40388,
+      "meshes": 19,
+      "materials": [
+        "blue",
+        "blueLight",
+        "darkSteel",
+        "leather",
+        "skin",
+        "violet"
+      ],
+      "triangles": 984
+    },
+    {
+      "file": "beastmaster.glb",
+      "sha256": "627eb9a31fa6b9c62e1f42cf1a529a4871ef4b353327b90e659766527c39f252",
+      "bytes": 41976,
+      "meshes": 20,
+      "materials": [
+        "darkSteel",
+        "gold",
+        "green",
+        "greenLight",
+        "ivory",
+        "leather",
+        "skin"
+      ],
+      "triangles": 1016
+    },
+    {
+      "file": "huntress.glb",
+      "sha256": "bf03056c895af44d014f15dd3c14c464e7b19377b79b47aa5db7ca1103a2e5fb",
+      "bytes": 40160,
+      "meshes": 20,
+      "materials": [
+        "bronzeLight",
+        "darkSteel",
+        "gold",
+        "ivory",
+        "leather",
+        "red",
+        "skin"
+      ],
+      "triangles": 928
+    },
+    {
+      "file": "stone_monster.glb",
+      "sha256": "5b3acb27bd44f8dcf32e285d4c354dfbde59940ec866c22f71d6ad627bcf7e24",
+      "bytes": 109440,
+      "meshes": 13,
+      "materials": [
+        "gold",
+        "ivory",
+        "monster",
+        "monsterLight"
+      ],
+      "triangles": 756,
+      "textureCoordinates": "per-face spherical UVs with seam unwrapping"
+    },
+    {
+      "file": "arena_floor.glb",
+      "sha256": "92187c41ddacfeafd10f6709e5f5e7090a381f2b887d68f9532549d3b55387e0",
+      "bytes": 15852,
+      "meshes": 6,
+      "materials": [
+        "earth",
+        "moss",
+        "path"
+      ],
+      "triangles": 424
+    }
+  ],
+  "paletteTextures": [
+    {
+      "file": "palettes/transknight_bronze.png",
+      "material": "bronze",
+      "rgba": [
+        209,
+        158,
+        97,
+        255
+      ],
+      "sha256": "8177599a73a48d53a5c62a7c9ce8bc042a5869d2fccb0f1af374d6b1c24a2258"
+    },
+    {
+      "file": "palettes/transknight_bronzeLight.png",
+      "material": "bronzeLight",
+      "rgba": [
+        239,
+        199,
+        124,
+        255
+      ],
+      "sha256": "822b342b93f0a47ca1e57e8cca6936265fa9602fe51c86f47410e71ad4411837"
+    },
+    {
+      "file": "palettes/transknight_darkSteel.png",
+      "material": "darkSteel",
+      "rgba": [
+        124,
+        137,
+        155,
+        255
+      ],
+      "sha256": "e00cb5fed46236b82554f199e5ca2fd9f47d18693d03ca0c48aed8944da86482"
+    },
+    {
+      "file": "palettes/transknight_gold.png",
+      "material": "gold",
+      "rgba": [
+        246,
+        215,
+        124,
+        255
+      ],
+      "sha256": "63bf6c1aa662b9478849ce1947ab2fa256c4060c98654f364d6db4f54b2231dc"
+    },
+    {
+      "file": "palettes/transknight_leather.png",
+      "material": "leather",
+      "rgba": [
+        144,
+        118,
+        97,
+        255
+      ],
+      "sha256": "96d3051be17a2b0da5585e326eb7f8de7abbf6bda4abeaca561d2e49ec662837"
+    },
+    {
+      "file": "palettes/transknight_skin.png",
+      "material": "skin",
+      "rgba": [
+        229,
+        197,
+        166,
+        255
+      ],
+      "sha256": "ec9de51312742561d5d6e6d9e5157be1f6a6717bb2b6b7d51bd6842daf4e9381"
+    },
+    {
+      "file": "palettes/transknight_steel.png",
+      "material": "steel",
+      "rgba": [
+        215,
+        223,
+        234,
+        255
+      ],
+      "sha256": "69c58fcc79a917e0e1278e5fa405223c80500a407517f020e49ade64e887f9ba"
+    },
+    {
+      "file": "palettes/foema_blue.png",
+      "material": "blue",
+      "rgba": [
+        118,
+        158,
+        215,
+        255
+      ],
+      "sha256": "98102fef7c033b5b7554ef41ee863f28fba0c4a003993a6f3e9889daeb0498a0"
+    },
+    {
+      "file": "palettes/foema_blueLight.png",
+      "material": "blueLight",
+      "rgba": [
+        166,
+        212,
+        243,
+        255
+      ],
+      "sha256": "6673d20750894214f0278f291137133bb73fcc242278765a5ae80885cc6cf9db"
+    },
+    {
+      "file": "palettes/foema_darkSteel.png",
+      "material": "darkSteel",
+      "rgba": [
+        124,
+        137,
+        155,
+        255
+      ],
+      "sha256": "e00cb5fed46236b82554f199e5ca2fd9f47d18693d03ca0c48aed8944da86482"
+    },
+    {
+      "file": "palettes/foema_leather.png",
+      "material": "leather",
+      "rgba": [
+        144,
+        118,
+        97,
+        255
+      ],
+      "sha256": "96d3051be17a2b0da5585e326eb7f8de7abbf6bda4abeaca561d2e49ec662837"
+    },
+    {
+      "file": "palettes/foema_skin.png",
+      "material": "skin",
+      "rgba": [
+        229,
+        197,
+        166,
+        255
+      ],
+      "sha256": "ec9de51312742561d5d6e6d9e5157be1f6a6717bb2b6b7d51bd6842daf4e9381"
+    },
+    {
+      "file": "palettes/foema_violet.png",
+      "material": "violet",
+      "rgba": [
+        173,
+        132,
+        206,
+        255
+      ],
+      "sha256": "b930ca5995a0ce0b5fba99006d4476b1896481535c2cd9d64bf8e2c391fc3ef3"
+    },
+    {
+      "file": "palettes/beastmaster_darkSteel.png",
+      "material": "darkSteel",
+      "rgba": [
+        124,
+        137,
+        155,
+        255
+      ],
+      "sha256": "e00cb5fed46236b82554f199e5ca2fd9f47d18693d03ca0c48aed8944da86482"
+    },
+    {
+      "file": "palettes/beastmaster_gold.png",
+      "material": "gold",
+      "rgba": [
+        246,
+        215,
+        124,
+        255
+      ],
+      "sha256": "63bf6c1aa662b9478849ce1947ab2fa256c4060c98654f364d6db4f54b2231dc"
+    },
+    {
+      "file": "palettes/beastmaster_green.png",
+      "material": "green",
+      "rgba": [
+        124,
+        173,
+        134,
+        255
+      ],
+      "sha256": "bc63683e39bcfd3c089fca904d0051961f461ef1718a27d87604fa48a3537b88"
+    },
+    {
+      "file": "palettes/beastmaster_greenLight.png",
+      "material": "greenLight",
+      "rgba": [
+        181,
+        206,
+        144,
+        255
+      ],
+      "sha256": "da5f85fa56c1e979a5572482e9bb2bdb34b5b3732c32468c0cd8ed18d05717c9"
+    },
+    {
+      "file": "palettes/beastmaster_ivory.png",
+      "material": "ivory",
+      "rgba": [
+        236,
+        231,
+        215,
+        255
+      ],
+      "sha256": "7698aa44e64b831a92ce7f36b7cc8ba5970e8736ac33dece6129ef5e837aa1a5"
+    },
+    {
+      "file": "palettes/beastmaster_leather.png",
+      "material": "leather",
+      "rgba": [
+        144,
+        118,
+        97,
+        255
+      ],
+      "sha256": "96d3051be17a2b0da5585e326eb7f8de7abbf6bda4abeaca561d2e49ec662837"
+    },
+    {
+      "file": "palettes/beastmaster_skin.png",
+      "material": "skin",
+      "rgba": [
+        229,
+        197,
+        166,
+        255
+      ],
+      "sha256": "ec9de51312742561d5d6e6d9e5157be1f6a6717bb2b6b7d51bd6842daf4e9381"
+    },
+    {
+      "file": "palettes/huntress_bronzeLight.png",
+      "material": "bronzeLight",
+      "rgba": [
+        239,
+        199,
+        124,
+        255
+      ],
+      "sha256": "822b342b93f0a47ca1e57e8cca6936265fa9602fe51c86f47410e71ad4411837"
+    },
+    {
+      "file": "palettes/huntress_darkSteel.png",
+      "material": "darkSteel",
+      "rgba": [
+        124,
+        137,
+        155,
+        255
+      ],
+      "sha256": "e00cb5fed46236b82554f199e5ca2fd9f47d18693d03ca0c48aed8944da86482"
+    },
+    {
+      "file": "palettes/huntress_gold.png",
+      "material": "gold",
+      "rgba": [
+        246,
+        215,
+        124,
+        255
+      ],
+      "sha256": "63bf6c1aa662b9478849ce1947ab2fa256c4060c98654f364d6db4f54b2231dc"
+    },
+    {
+      "file": "palettes/huntress_ivory.png",
+      "material": "ivory",
+      "rgba": [
+        236,
+        231,
+        215,
+        255
+      ],
+      "sha256": "7698aa44e64b831a92ce7f36b7cc8ba5970e8736ac33dece6129ef5e837aa1a5"
+    },
+    {
+      "file": "palettes/huntress_leather.png",
+      "material": "leather",
+      "rgba": [
+        144,
+        118,
+        97,
+        255
+      ],
+      "sha256": "96d3051be17a2b0da5585e326eb7f8de7abbf6bda4abeaca561d2e49ec662837"
+    },
+    {
+      "file": "palettes/huntress_red.png",
+      "material": "red",
+      "rgba": [
+        184,
+        105,
+        97,
+        255
+      ],
+      "sha256": "eb06fd50f2f64c2439f4e3fc538ec23c46a4a8210ad7c2b5e092d97e59f47824"
+    },
+    {
+      "file": "palettes/huntress_skin.png",
+      "material": "skin",
+      "rgba": [
+        229,
+        197,
+        166,
+        255
+      ],
+      "sha256": "ec9de51312742561d5d6e6d9e5157be1f6a6717bb2b6b7d51bd6842daf4e9381"
+    },
+    {
+      "file": "palettes/stone_monster_gold.png",
+      "material": "gold",
+      "rgba": [
+        246,
+        215,
+        124,
+        255
+      ],
+      "sha256": "63bf6c1aa662b9478849ce1947ab2fa256c4060c98654f364d6db4f54b2231dc"
+    },
+    {
+      "file": "palettes/stone_monster_ivory.png",
+      "material": "ivory",
+      "rgba": [
+        236,
+        231,
+        215,
+        255
+      ],
+      "sha256": "7698aa44e64b831a92ce7f36b7cc8ba5970e8736ac33dece6129ef5e837aa1a5"
+    },
+    {
+      "file": "palettes/stone_monster_monster.png",
+      "material": "monster",
+      "sha256": "1ba0c97faa40604ccbd54b7e8c852781dc813d6349aa82e97b10c1790efec819",
+      "width": 512,
+      "height": 512,
+      "generated": "stone-organic-periodic-v4"
+    },
+    {
+      "file": "palettes/stone_monster_monsterLight.png",
+      "material": "monsterLight",
+      "sha256": "741e3cb01475a47f8e0fcdf3bfb39d22d15500efe65de37db1bd61f2a8e12e90",
+      "width": 512,
+      "height": 512,
+      "generated": "stone-organic-periodic-v4"
+    },
+    {
+      "file": "palettes/arena_floor_earth.png",
+      "material": "earth",
+      "rgba": [
+        158,
+        139,
+        118,
+        255
+      ],
+      "sha256": "601db7d66899d3592c5823d847290c30d1c784e2ca2918e2b3a02fe56e65c8e8"
+    },
+    {
+      "file": "palettes/arena_floor_moss.png",
+      "material": "moss",
+      "rgba": [
+        124,
+        153,
+        121,
+        255
+      ],
+      "sha256": "f10b7e0d4add3e5eca6ec4227666bb7ad271a2f1678b36de7d5e8e3af167181f"
+    },
+    {
+      "file": "palettes/arena_floor_path.png",
+      "material": "path",
+      "rgba": [
+        173,
+        158,
+        132,
+        255
+      ],
+      "sha256": "46b1e1278851d8b239cc9a7ca9467f2a613a8686e2d7cc881b888faf6ac2ff3c"
+    }
+  ],
+  "totalTriangles": 5084,
+  "totalGlbBytes": 208716
+}

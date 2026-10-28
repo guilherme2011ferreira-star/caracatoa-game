@@ -1,0 +1,2749 @@
+local CLASS_NAMES = { "TransKnight", "Foema", "BeastMaster", "Huntress" }
+local CLASS_BUTTON_TEXT_SCALE = 0.60
+local CaracatoaSession = require "main.wyd_session"
+local CaracatoaSkills = require "main.caracatoa_skills"
+local CaracatoaItems = require "main.caracatoa_items"
+local CaracatoaItemization = require "main.caracatoa_itemization"
+local CaracatoaProgression = require "main.caracatoa_progression"
+local CharacterLore = require "main.caracatoa_character_lore"
+local json = require "json"
+local COLOR_TEXT = vmath.vector4(0.99, 0.96, 0.86, 1)
+local COLOR_MUTED = vmath.vector4(0.88, 0.83, 0.72, 1)
+local COLOR_GOLD = vmath.vector4(0.96, 0.70, 0.25, 1)
+local COLOR_LOGIN_LABEL = vmath.vector4(1.0, 0.88, 0.63, 1)
+local COLOR_LOGIN_HINT = vmath.vector4(0.94, 0.88, 0.78, 1)
+local COLOR_TEXT_SHADOW = vmath.vector4(0.008, 0.005, 0.002, 1)
+local COLOR_PANEL = vmath.vector4(0.035, 0.055, 0.09, 0.96)
+local COLOR_FIELD = vmath.vector4(0.08, 0.105, 0.15, 1)
+local COLOR_FIELD_ACTIVE = vmath.vector4(0.20, 0.15, 0.08, 1)
+local COLOR_BUTTON = vmath.vector4(0.26, 0.075, 0.065, 1)
+local COLOR_BUTTON_SELECTED = vmath.vector4(0.48, 0.29, 0.10, 1)
+local COLOR_FRAME_SHADOW = vmath.vector4(0.012, 0.016, 0.022, 1)
+local COLOR_FRAME_IRON = vmath.vector4(0.055, 0.050, 0.045, 1)
+local COLOR_FRAME_BRONZE = vmath.vector4(0.29, 0.18, 0.085, 1)
+local COLOR_FRAME_GOLD = vmath.vector4(0.72, 0.48, 0.20, 1)
+local COLOR_FRAME_HIGHLIGHT = vmath.vector4(0.96, 0.73, 0.36, 1)
+local COLOR_FRAME_INSET = vmath.vector4(0.105, 0.075, 0.052, 1)
+local COLOR_XP_FRAME = vmath.vector4(0.43, 0.31, 0.14, 0.98)
+local COLOR_XP_TRACK = vmath.vector4(0.025, 0.055, 0.085, 0.98)
+local COLOR_XP_FILL = vmath.vector4(0.24, 0.73, 0.84, 1)
+local COLOR_HP_FILL = vmath.vector4(0.72, 0.095, 0.085, 1)
+local COLOR_MP_FILL = vmath.vector4(0.10, 0.32, 0.68, 1)
+local COLOR_TARGET_FILL = vmath.vector4(0.78, 0.16, 0.10, 1)
+local COLOR_COMBAT_DAMAGE = vmath.vector4(1.0, 0.62, 0.18, 1)
+local COLOR_COMBAT_HEAL = vmath.vector4(0.54, 0.92, 0.48, 1)
+local COLOR_COMBAT_EXPERIENCE = vmath.vector4(0.48, 0.82, 1.0, 1)
+local COMBAT_FEEDBACK_COUNT = 3
+local COMBAT_FEEDBACK_DURATION = 0.85
+local COMBAT_FEEDBACK_RISE = 30
+local INVENTORY_RARITY_TEXT_COLORS = {
+	[2] = vmath.vector4(0.52, 0.72, 0.94, 1),
+	[3] = vmath.vector4(0.72, 0.55, 0.91, 1),
+	[4] = vmath.vector4(0.96, 0.70, 0.25, 1),
+	[5] = vmath.vector4(0.95, 0.91, 0.78, 1),
+}
+local ACCESS_SCREENS = { login = true, register = true, pin = true, roster = true, create = true }
+local IDLE_ACCESS_THROTTLE_SECONDS = 1.25
+local HUD_ONBOARDING_TEST_MODE = os.getenv("CARACATOA_HUD_ONBOARDING_TEST") == "1"
+local HUD_REGISTRATION_TEST_MODE = HUD_ONBOARDING_TEST_MODE or os.getenv("CARACATOA_HUD_REGISTRATION_TEST") == "1"
+
+local function is_access_screen(screen)
+	return ACCESS_SCREENS[screen] == true
+end
+
+local function set_access_idle_throttle(self)
+	if not self.html5_preview then return end
+	local should_throttle = (self.screen == "login" or self.screen == "register")
+		and not self.login_pending and not self.registration_pending
+	sys.set_engine_throttle(should_throttle, IDLE_ACCESS_THROTTLE_SECONDS)
+end
+
+local function track_node(self, screen, node)
+	self.screen_nodes[screen][#self.screen_nodes[screen] + 1] = node
+	return node
+end
+
+local function add_box(self, screen, x, y, width, height, color)
+	local node = gui.new_box_node(vmath.vector3(x, y, 0.1), vmath.vector3(width, height, 0))
+	gui.set_pivot(node, gui.PIVOT_CENTER)
+	gui.set_color(node, color)
+	return track_node(self, screen, node)
+end
+
+local function add_round_surface(self, screen, x, y, width, height, color, z, radius)
+	z = z or 0.1
+	radius = math.min(radius or 7, height / 2, width / 2)
+	local nodes = {}
+	local function add_piece(kind, px, py, sx, sy)
+		local node
+		if kind == "circle" then
+			node = gui.new_pie_node(vmath.vector3(px, py, z), vmath.vector3(sx, sy, 0))
+			gui.set_fill_angle(node, 360)
+		else
+			node = gui.new_box_node(vmath.vector3(px, py, z), vmath.vector3(sx, sy, 0))
+		end
+		gui.set_pivot(node, gui.PIVOT_CENTER)
+		gui.set_color(node, color)
+		nodes[#nodes + 1] = track_node(self, screen, node)
+	end
+	add_piece("box", x, y, width - radius * 2, height)
+	add_piece("box", x, y, width, height - radius * 2)
+	for _, side in ipairs({ -1, 1 }) do
+		for _, vertical in ipairs({ -1, 1 }) do
+			add_piece("circle", x + side * (width / 2 - radius), y + vertical * (height / 2 - radius), radius * 2, radius * 2)
+		end
+	end
+	return { nodes = nodes }
+end
+
+local function set_surface_color(surface, color)
+	for _, node in ipairs(surface.nodes or { surface }) do gui.set_color(node, color) end
+end
+
+local function set_surface_enabled(surface, enabled)
+	for _, node in ipairs(surface.nodes or { surface }) do gui.set_enabled(node, enabled) end
+end
+
+local function hit_rect_contains(hit_rect, x, y)
+	return hit_rect and type(x) == "number" and type(y) == "number" and
+		x >= hit_rect.x - hit_rect.width / 2 and
+		x <= hit_rect.x + hit_rect.width / 2 and
+		y >= hit_rect.y - hit_rect.height / 2 and
+		y <= hit_rect.y + hit_rect.height / 2
+end
+
+local function add_text(self, screen, x, y, value, color, centered, scale, z)
+	local font = "cinzel"
+	local text_z = z or 0.2
+	local pivot = centered and gui.PIVOT_CENTER or gui.PIVOT_W
+	local effects = {}
+	if is_access_screen(screen) or screen == "create" or screen == "world" then
+
+
+		local shadow = gui.new_text_node(vmath.vector3(x + 2, y - 2, text_z - 0.005), value)
+		gui.set_font(shadow, font)
+		gui.set_pivot(shadow, pivot)
+		gui.set_color(shadow, COLOR_TEXT_SHADOW)
+		if scale and scale ~= 1 then gui.set_scale(shadow, vmath.vector3(scale, scale, 1)) end
+		track_node(self, screen, shadow)
+		effects[#effects + 1] = { node = shadow, color = COLOR_TEXT_SHADOW }
+	end
+	local node = gui.new_text_node(vmath.vector3(x, y, text_z), value)
+	gui.set_font(node, font)
+	gui.set_pivot(node, pivot)
+	gui.set_color(node, color or COLOR_TEXT)
+	if scale and scale ~= 1 then gui.set_scale(node, vmath.vector3(scale, scale, 1)) end
+	if #effects > 0 then
+		self.text_shadow_by_node = self.text_shadow_by_node or {}
+		self.text_shadow_by_node[node] = effects[1].node
+	end
+	return track_node(self, screen, node), effects
+end
+
+local function set_text(self, node, value)
+	if not node then return end
+	gui.set_text(node, value)
+	local shadow = self.text_shadow_by_node and self.text_shadow_by_node[node]
+	if shadow then gui.set_text(shadow, value) end
+end
+
+local function set_text_scale(self, node, scale)
+	if not node then return end
+	local size = vmath.vector3(scale, scale, 1)
+	gui.set_scale(node, size)
+	local shadow = self.text_shadow_by_node and self.text_shadow_by_node[node]
+	if shadow then gui.set_scale(shadow, size) end
+end
+
+local function panel_is_open(self, panel)
+	if not panel then return true end
+	if panel == "attributes" or panel == "inventory" or panel == "skills" then
+		return self.screen == "world" and self.world_detail_panel == panel
+	elseif panel == "mount" then
+		return self.screen == "world" and self.mount_panel_open == true
+	elseif panel == "trade" then
+		return self.screen == "world" and self.trade_panel_open == true
+	elseif panel == "shop" then
+		return self.screen == "world" and self.shop_panel_open == true
+	end
+	return false
+end
+
+local function capture_world_panel(self, name, first_node, first_button, first_field)
+	self.world_panel_nodes = self.world_panel_nodes or {}
+	local nodes = {}
+	for index = first_node, #self.screen_nodes.world do
+		nodes[#nodes + 1] = self.screen_nodes.world[index]
+	end
+	self.world_panel_nodes[name] = nodes
+	for index = first_button, #self.buttons do
+		local button = self.buttons[index]
+		if button.screen == "world" then button.panel = name end
+	end
+	for index = first_field, #self.fields do
+		local field = self.fields[index]
+		if field.screen == "world" then field.panel = name end
+	end
+end
+
+local function active_overlay_panel(self)
+	if self.mount_panel_open then return "mount" end
+	if self.trade_panel_open then return "trade" end
+	if self.shop_panel_open then return "shop" end
+	return nil
+end
+
+local function field_is_available(self, field)
+	if field.panel then return panel_is_open(self, field.panel) end
+	return self.screen ~= "world" or active_overlay_panel(self) == nil
+end
+
+local function button_is_available(self, button)
+	if button.panel then return panel_is_open(self, button.panel) end
+	local overlay = self.screen == "world" and active_overlay_panel(self) or nil
+	if overlay then
+		return button.action == "logout" or button.action:sub(-7) == "_toggle"
+	end
+	return true
+end
+
+local function truncate_utf8(value, max_characters)
+	value = tostring(value or "")
+	local byte_index = 1
+	local character_count = 0
+	local prefix_end = 0
+	while byte_index <= #value and character_count < max_characters do
+		local first = string.byte(value, byte_index)
+		local width = first >= 240 and 4 or (first >= 224 and 3 or (first >= 192 and 2 or 1))
+		prefix_end = math.min(#value, byte_index + width - 1)
+		byte_index = byte_index + width
+		character_count = character_count + 1
+	end
+	if byte_index <= #value then return value:sub(1, prefix_end) .. "…" end
+	return value
+end
+
+local function add_logo(self, screen, x, y, width, height, z)
+	local node = gui.new_box_node(vmath.vector3(x, y, z or 0.2), vmath.vector3(width, height, 0))
+	gui.set_texture(node, hash("branding"))
+	gui.play_flipbook(node, hash("caracatoa-login-logo"))
+	gui.set_color(node, vmath.vector4(1, 1, 1, 1))
+	return track_node(self, screen, node)
+end
+
+local function add_entry_art(self, screen)
+	local node = gui.new_box_node(vmath.vector3(640, 360, 0.01), vmath.vector3(1280, 720, 0))
+	gui.set_texture(node, hash("entry_art"))
+	gui.play_flipbook(node, hash("caracatoa-entry-art"))
+	gui.set_color(node, vmath.vector4(1, 1, 1, 1))
+	return track_node(self, screen, node)
+end
+
+local function add_login_panel_art(self, screen)
+	local node = gui.new_box_node(vmath.vector3(270, 360, 0.08), vmath.vector3(480, 600, 0))
+	gui.set_texture(node, hash("login_panel"))
+	gui.play_flipbook(node, hash("caracatoa-login-panel"))
+	gui.set_color(node, vmath.vector4(1, 1, 1, 1))
+	return track_node(self, screen, node)
+end
+
+local function add_registration_panel_art(self, screen)
+	local node = gui.new_box_node(vmath.vector3(320, 360, 0.08), vmath.vector3(520, 650, 0))
+	gui.set_texture(node, hash("registration_panel"))
+	gui.play_flipbook(node, hash("caracatoa-registration-panel"))
+	gui.set_color(node, vmath.vector4(1, 1, 1, 1))
+	return track_node(self, screen, node)
+end
+
+local function add_pill(self, screen, x, y, width, height, color, z)
+	local radius = height / 2
+	local center = gui.new_box_node(vmath.vector3(x, y, z), vmath.vector3(width - height, height, 0))
+	local left = gui.new_pie_node(vmath.vector3(x - width / 2 + radius, y, z), vmath.vector3(height, height, 0))
+	local right = gui.new_pie_node(vmath.vector3(x + width / 2 - radius, y, z), vmath.vector3(height, height, 0))
+	for _, node in ipairs({ center, left, right }) do
+		gui.set_pivot(node, gui.PIVOT_CENTER)
+		gui.set_color(node, color)
+	end
+	gui.set_fill_angle(left, 360)
+	gui.set_fill_angle(right, 360)
+	return {
+		center = track_node(self, screen, center),
+		left = track_node(self, screen, left),
+		right = track_node(self, screen, right),
+		x = x,
+		y = y,
+		width = width,
+		height = height,
+		z = z,
+	}
+end
+
+local function add_medallion(self, screen, x, y, radius, color, z)
+	local node = gui.new_pie_node(vmath.vector3(x, y, z), vmath.vector3(radius * 2, radius * 2, 0))
+	gui.set_pivot(node, gui.PIVOT_CENTER)
+	gui.set_fill_angle(node, 360)
+	gui.set_color(node, color)
+	return track_node(self, screen, node)
+end
+
+local function add_accent_line(self, screen, x, y, width, height, color, z)
+	local node = gui.new_box_node(vmath.vector3(x, y, z), vmath.vector3(width, height, 0))
+	gui.set_pivot(node, gui.PIVOT_CENTER)
+	gui.set_color(node, color)
+	return track_node(self, screen, node)
+end
+
+local function add_frame_rivets(self, screen, x, y, width, height, inset, radius, z)
+	for _, side in ipairs({ -1, 1 }) do
+		for _, vertical in ipairs({ -1, 1 }) do
+			local px = x + side * (width / 2 - inset)
+			local py = y + vertical * (height / 2 - inset)
+			add_medallion(self, screen, px, py, radius + 0.8, COLOR_FRAME_SHADOW, z)
+			add_medallion(self, screen, px, py, radius, COLOR_FRAME_HIGHLIGHT, z + 0.002)
+		end
+	end
+end
+
+local function add_metal_frame(self, screen, x, y, width, height, radius, z, face_color, rivets)
+	local frame = { nodes = {} }
+	local layers = {
+		{ width + 10, height + 10, COLOR_FRAME_SHADOW, radius + 5, z },
+		{ width + 7, height + 7, COLOR_FRAME_IRON, radius + 3.5, z + 0.003 },
+		{ width + 4, height + 4, COLOR_FRAME_BRONZE, radius + 2, z + 0.006 },
+		{ width + 2, height + 2, COLOR_FRAME_GOLD, radius + 1, z + 0.009 },
+	}
+	for _, layer in ipairs(layers) do
+		local surface = add_round_surface(self, screen, x, y, layer[1], layer[2], layer[3], layer[5], layer[4])
+		for _, node in ipairs(surface.nodes) do frame.nodes[#frame.nodes + 1] = node end
+	end
+	local face = add_round_surface(self, screen, x, y, width, height, face_color, z + 0.012, radius)
+	if rivets then
+		local inset = math.min(radius + 2, width / 4, height / 4)
+		local rivet_radius = math.min(2.2, math.max(1.35, height * 0.045))
+		add_frame_rivets(self, screen, x, y, width, height, inset, rivet_radius, z + 0.014)
+	end
+	return frame, face
+end
+
+local function add_gothic_crest(self, screen, x, y, z)
+	local _, plate = add_metal_frame(self, screen, x, y, 116, 22, 10, z, COLOR_FRAME_INSET)
+	for _, node in ipairs(plate.nodes) do gui.set_enabled(node, true) end
+	for _, side in ipairs({ -1, 1 }) do
+		add_accent_line(self, screen, x + side * 32, y, 18, 1.5, COLOR_FRAME_GOLD, z + 0.016)
+		add_accent_line(self, screen, x + side * 43, y, 7, 1, COLOR_FRAME_HIGHLIGHT, z + 0.017)
+		add_medallion(self, screen, x + side * 48, y, 2.2, COLOR_FRAME_GOLD, z + 0.018)
+	end
+	add_medallion(self, screen, x, y, 7, COLOR_FRAME_GOLD, z + 0.016)
+	add_medallion(self, screen, x, y, 4.4, COLOR_BUTTON, z + 0.017)
+	add_medallion(self, screen, x, y, 1.8, COLOR_FRAME_HIGHLIGHT, z + 0.018)
+end
+
+local function set_pill_width(pill, width)
+	width = math.max(0, math.min(pill.width, width or 0))
+	if width <= 0 then
+		gui.set_enabled(pill.center, false)
+		gui.set_enabled(pill.left, false)
+		gui.set_enabled(pill.right, false)
+		return
+	end
+
+	local left_edge = pill.x - pill.width / 2
+	if width < pill.height then
+		gui.set_enabled(pill.center, false)
+		gui.set_enabled(pill.right, false)
+		gui.set_enabled(pill.left, true)
+		gui.set_size(pill.left, vmath.vector3(width, pill.height, 0))
+		gui.set_position(pill.left, vmath.vector3(left_edge + width / 2, pill.y, pill.z))
+		return
+	end
+
+	local radius = pill.height / 2
+	gui.set_enabled(pill.center, width > pill.height)
+	gui.set_enabled(pill.left, true)
+	gui.set_enabled(pill.right, true)
+	gui.set_size(pill.left, vmath.vector3(pill.height, pill.height, 0))
+	gui.set_size(pill.right, vmath.vector3(pill.height, pill.height, 0))
+	gui.set_position(pill.left, vmath.vector3(left_edge + radius, pill.y, pill.z))
+	gui.set_position(pill.right, vmath.vector3(left_edge + width - radius, pill.y, pill.z))
+	local center_width = width - pill.height
+	if center_width > 0 then
+		gui.set_size(pill.center, vmath.vector3(center_width, pill.height, 0))
+		gui.set_position(pill.center, vmath.vector3(left_edge + width / 2, pill.y, pill.z))
+	end
+end
+
+local function set_ratio_fill(pill, current, maximum)
+	if not pill or type(current) ~= "number" or type(maximum) ~= "number" or maximum <= 0 then
+		if pill then set_pill_width(pill, 0) end
+		return false
+	end
+	local value = math.max(0, math.min(maximum, current))
+	set_pill_width(pill, pill.width * value / maximum)
+	return true
+end
+
+local function set_world_vitals(self, current_hp, max_hp, current_mp, max_mp)
+	if type(max_hp) == "number" and max_hp > 0 then self.world_max_hp = max_hp end
+	if type(max_mp) == "number" and max_mp > 0 then self.world_max_mp = max_mp end
+	local hp_max = self.world_max_hp
+	local mp_max = self.world_max_mp
+	local hp_valid = set_ratio_fill(self.world_hp_fill, current_hp, hp_max)
+	local mp_valid = set_ratio_fill(self.world_mp_fill, current_mp, mp_max)
+	set_text(self, self.world_hp_value, hp_valid and string.format("%s / %s", CaracatoaProgression.format_count(math.max(0, current_hp)), CaracatoaProgression.format_count(hp_max)) or "— / —")
+	set_text(self, self.world_mp_value, mp_valid and string.format("%s / %s", CaracatoaProgression.format_count(math.max(0, current_mp)), CaracatoaProgression.format_count(mp_max)) or "— / —")
+end
+
+local function set_world_target_health(self, current_hp, max_hp)
+	if type(max_hp) == "number" and max_hp > 0 then self.world_target_max_hp = max_hp end
+	local target_max = self.world_target_max_hp
+	local valid = set_ratio_fill(self.world_target_fill, current_hp, target_max)
+	set_text(self, self.world_resources, valid and string.format("HP %s / %s", CaracatoaProgression.format_count(math.max(0, current_hp)), CaracatoaProgression.format_count(target_max)) or "HP — / —")
+end
+
+local function add_world_combat_feedback(self)
+	self.world_combat_feedback = {}
+	self.world_combat_feedback_next = 0
+	for index = 1, COMBAT_FEEDBACK_COUNT do
+		local x = 640 + (index - 2) * 22
+		local y = 386 + (index - 2) * 18
+		local shadow = gui.new_text_node(vmath.vector3(x + 2, y - 2, 0.795), "")
+		gui.set_font(shadow, "cinzel")
+		gui.set_pivot(shadow, gui.PIVOT_CENTER)
+		gui.set_color(shadow, COLOR_TEXT_SHADOW)
+		gui.set_scale(shadow, vmath.vector3(1.24, 1.24, 1))
+		gui.set_enabled(shadow, false)
+		local text = gui.new_text_node(vmath.vector3(x, y, 0.8), "")
+		gui.set_font(text, "cinzel")
+		gui.set_pivot(text, gui.PIVOT_CENTER)
+		gui.set_color(text, COLOR_COMBAT_DAMAGE)
+		gui.set_scale(text, vmath.vector3(1.24, 1.24, 1))
+		gui.set_enabled(text, false)
+		self.text_shadow_by_node[text] = shadow
+		self.world_combat_feedback[index] = {
+			text = text,
+			shadow = shadow,
+			x = x,
+			y = y,
+			elapsed = COMBAT_FEEDBACK_DURATION,
+			color = COLOR_COMBAT_DAMAGE,
+			active = false,
+		}
+	end
+end
+
+local function show_world_combat_feedback(self, value, color)
+	if self.screen ~= "world" or type(value) ~= "string" or value == "" then return end
+	local feedback = self.world_combat_feedback
+	if not feedback or #feedback == 0 then return end
+	self.world_combat_feedback_next = (self.world_combat_feedback_next or 0) % #feedback + 1
+	local popup = feedback[self.world_combat_feedback_next]
+	set_text(self, popup.text, value)
+	popup.color = color
+	popup.elapsed = 0
+	popup.active = true
+	gui.set_position(popup.text, vmath.vector3(popup.x, popup.y, 0.8))
+	gui.set_position(popup.shadow, vmath.vector3(popup.x + 2, popup.y - 2, 0.795))
+	gui.set_color(popup.text, color)
+	gui.set_color(popup.shadow, COLOR_TEXT_SHADOW)
+	gui.set_enabled(popup.shadow, true)
+	gui.set_enabled(popup.text, true)
+end
+
+local function update_world_combat_feedback(self, dt)
+	for _, popup in ipairs(self.world_combat_feedback or {}) do
+		if popup.active then
+			popup.elapsed = popup.elapsed + dt
+			if self.screen ~= "world" or popup.elapsed >= COMBAT_FEEDBACK_DURATION then
+				popup.active = false
+				gui.set_enabled(popup.shadow, false)
+				gui.set_enabled(popup.text, false)
+			else
+				local progress = popup.elapsed / COMBAT_FEEDBACK_DURATION
+				local alpha = 1 - progress
+				local y = popup.y + COMBAT_FEEDBACK_RISE * progress
+				gui.set_position(popup.text, vmath.vector3(popup.x, y, 0.8))
+				gui.set_position(popup.shadow, vmath.vector3(popup.x + 2, y - 2, 0.795))
+				gui.set_color(popup.text, vmath.vector4(popup.color.x, popup.color.y, popup.color.z, alpha))
+				gui.set_color(popup.shadow, vmath.vector4(COLOR_TEXT_SHADOW.x, COLOR_TEXT_SHADOW.y, COLOR_TEXT_SHADOW.z, alpha))
+			end
+		end
+	end
+end
+
+local function set_world_experience(self, experience, level)
+	local progress = CaracatoaProgression.get_level_progress(experience, level)
+	if not progress then
+		set_pill_width(self.world_xp_fill, 0)
+		set_text(self, self.world_xp_label, "EXP aguardando dados válidos do servidor")
+		return false
+	end
+	set_pill_width(self.world_xp_fill, self.world_xp_fill.width * progress.fraction)
+	local percent = math.floor(progress.fraction * 100 + 0.5)
+	set_text(self, self.world_xp_label, string.format(
+		"EXP %s / %s  ·  %d%%",
+		CaracatoaProgression.format_count(progress.earned),
+		CaracatoaProgression.format_count(progress.required),
+		percent
+	))
+	self.world_experience = experience
+	return true
+end
+
+local function add_panel(self, screen, title, subtitle, center_x)
+	center_x = center_x or 270
+	local left = center_x - 195
+	if screen == "login" then
+		add_login_panel_art(self, screen)
+		return
+	elseif screen == "pin" or screen == "roster" then
+		add_metal_frame(self, screen, center_x, 360, 470, 590, 14, 0.09, COLOR_PANEL, true)
+		add_gothic_crest(self, screen, center_x, 654, 0.12)
+	else
+		add_round_surface(self, screen, center_x, 360, 480, 600, COLOR_GOLD, 0.1, 16)
+		add_round_surface(self, screen, center_x, 360, 470, 590, COLOR_PANEL, 0.11, 14)
+	end
+	add_text(self, screen, left, 608, "CARACATOA", COLOR_GOLD, false, 1.45)
+	add_text(self, screen, left, 575, title, COLOR_TEXT, false, 1.15)
+	add_text(self, screen, left, 546, subtitle, COLOR_MUTED)
+end
+
+local function add_framed_panel(self, screen, x, y, width, height)
+	if screen == "register" then
+		add_registration_panel_art(self, screen)
+	else
+		add_round_surface(self, screen, x, y, width, height, COLOR_GOLD, 0.1, 16)
+		add_round_surface(self, screen, x, y, width - 10, height - 10, COLOR_PANEL, 0.11, 14)
+	end
+end
+
+local function add_button(self, screen, action, label, x, y, width, height, z)
+	local frame
+	local box
+	local radius = math.min(10, height / 2)
+	if screen == "login" or screen == "register" then
+		box = add_box(self, screen, x, y, width, height, vmath.vector4(1, 1, 1, 0))
+	elseif screen == "pin" or screen == "roster" then
+		frame, box = add_metal_frame(self, screen, x, y, width, height, radius, 0.105, COLOR_BUTTON, true)
+		add_accent_line(self, screen, x, y + height / 2 - 5, width - 28, 1.5, vmath.vector4(0.88, 0.56, 0.30, 0.72), 0.132)
+		add_accent_line(self, screen, x, y - height / 2 + 4, width - 34, 1, COLOR_FRAME_SHADOW, 0.132)
+	else
+		frame = add_round_surface(self, screen, x, y, width + 4, height + 4, COLOR_GOLD, z or 0.11, radius)
+		box = add_round_surface(self, screen, x, y, width, height, COLOR_BUTTON, (z or 0.12) + 0.01, math.min(9, height / 2))
+	end
+	local text_scale = (screen == "register" or screen == "login") and 1.08 or nil
+	local text = add_text(self, screen, x, y - 5, label, COLOR_TEXT, true, text_scale, z and z + 0.08 or nil)
+	local register_submit = screen == "register" and action == "register_confirm"
+	-- Browser CSS-to-canvas rounding puts a centered 80 ms click slightly above
+	-- the submit plate. Give that button a small upward-biased hit area while
+	-- keeping a one-pixel gap from the adjacent Back button.
+	local button = {
+		owner = self, screen = screen, action = action, box = box, frame = frame,
+		text = text,
+		hit_rect = {
+			x = x,
+			y = y + (register_submit and 2 or 0),
+			width = width + 16,
+			height = height + (register_submit and 8 or (screen == "register" and 2 or 10)),
+		},
+	}
+	self.buttons[#self.buttons + 1] = button
+	return button
+end
+
+local function add_field(self, screen, name, label, x, label_y, field_y, width, layer)
+	local label_color = is_access_screen(screen) and COLOR_LOGIN_LABEL or COLOR_MUTED
+	local label_scale = (screen == "register" or screen == "login") and 0.9 or nil
+	if label and label ~= "" then
+		add_text(self, screen, x - width / 2, label_y, label, label_color, false, label_scale, layer and layer + 0.08 or nil)
+	end
+	local frame
+	local box
+	if screen == "login" then
+		box = add_box(self, screen, x, field_y, width, 46, vmath.vector4(1, 1, 1, 0))
+	elseif screen == "register" then
+
+	elseif screen == "pin" or screen == "roster" then
+		frame, box = add_metal_frame(self, screen, x, field_y, width, 42, 9, 0.105, COLOR_FIELD, true)
+		add_accent_line(self, screen, x, field_y + 42 / 2 - 5, width - 24, 1, vmath.vector4(0.79, 0.55, 0.27, 0.65), 0.132)
+	else
+		frame = add_round_surface(self, screen, x, field_y, width + 4, 46, COLOR_GOLD, layer or 0.11, 10)
+		box = add_round_surface(self, screen, x, field_y, width, 42, COLOR_FIELD, (layer or 0.11) + 0.01, 9)
+	end
+	local value_scale = screen == "login" and 1.06 or (screen == "register" and 1.12 or nil)
+	local value, value_effects = add_text(self, screen, x - width / 2 + (screen == "login" and 30 or 27), field_y - 5, "", COLOR_TEXT, false, value_scale, layer and layer + 0.12 or nil)
+	local field = {
+		screen = screen, name = name, box = box, frame = frame, value = value,
+		value_effects = value_effects,
+		width = width, art_backed = screen == "login" or screen == "register",
+		hit_rect = { x = x, y = field_y, width = width + 14, height = 60 },
+	}
+	self.fields[#self.fields + 1] = field
+	return field
+end
+
+local function field_for(self, name)
+	for _, field in ipairs(self.fields) do
+		if field.name == name and field.screen == self.screen then return field end
+	end
+	return nil
+end
+
+local function render_field(self, name)
+	local field = field_for(self, name)
+	if not field then return end
+	local value = self.values[name] or ""
+	local shown = value
+	if name == "password" or name == "password_confirm" or name == "pin" then shown = string.rep("*", #value) end
+	if shown == "" then
+		local prompts = self.screen == "register" and {
+			account = "ID da conta",
+			password = "Senha · 8 a 11 caracteres",
+			password_confirm = "Repita a senha",
+			pin = "PIN · 4 a 6 dígitos",
+		} or {
+			account = "ID da conta",
+			password = "Senha do jogo",
+			password_confirm = "Repita a senha",
+			pin = "Digite de 4 a 6 dígitos",
+			character_name = "Nome de 1 a 16 caracteres",
+			trade_target = "Nome exato da personagem",
+			trade_gold = "0",
+			shop_price = "Preço em gold",
+		}
+		shown = prompts[name] or ""
+		local placeholder_color = is_access_screen(field.screen) and COLOR_LOGIN_HINT or COLOR_MUTED
+		gui.set_color(field.value, field.art_backed and (self.active_field == name and COLOR_LOGIN_LABEL or placeholder_color) or placeholder_color)
+	else
+		gui.set_color(field.value, COLOR_TEXT)
+	end
+	gui.set_text(field.value, shown)
+	for _, effect in ipairs(field.value_effects or {}) do gui.set_text(effect.node, shown) end
+	if not field.art_backed then
+		set_surface_color(field.box, self.active_field == name and COLOR_FIELD_ACTIVE or COLOR_FIELD)
+	end
+end
+
+local function set_active_field(self, name)
+	self.active_field = name
+	for _, field in ipairs(self.fields) do render_field(self, field.name) end
+end
+
+local function refresh_creator_details(self)
+	local definition = CharacterLore[self.selected_class or 0] or CharacterLore[0]
+	local attributes = definition.attributes or { str = 10, int = 10, dex = 10, con = 10 }
+	set_text(self, self.creator_class_title, definition.name)
+	set_text(self, self.creator_class_subtitle, definition.title or "Aventureiro")
+	set_text(self, self.creator_attributes, string.format(
+		"INICIAIS  ·  FOR %d  |  INT %d  |  DES %d  |  CON %d",
+		attributes.str, attributes.int, attributes.dex, attributes.con
+	))
+	set_text(self, self.creator_strengths, "FORÇAS  ·  " .. (definition.strengths or "Em definição"))
+	set_text(self, self.creator_weaknesses, "LIMITES  ·  " .. (definition.weaknesses or "Em definição"))
+	set_text(self, self.creator_story_title, definition.name .. " — sua história")
+	set_text(self, self.creator_story_line1, definition.line1 or "A jornada começa no coração de Caracatoa.")
+	set_text(self, self.creator_story_line2, definition.line2 or "")
+	set_text(self, self.creator_visual, definition.visual or "")
+end
+
+local function select_creator_class(self, class_id)
+	if type(class_id) ~= "number" or class_id < 0 or class_id > 3 or class_id ~= math.floor(class_id) then return end
+	self.selected_class = class_id
+	for _, button in ipairs(self.class_buttons) do
+		set_surface_color(button.box, button.class_id == class_id and COLOR_BUTTON_SELECTED or COLOR_BUTTON)
+	end
+	refresh_creator_details(self)
+	local avatar_urls = {
+		"/transknight#avatar_animation",
+		"/foema#avatar_animation",
+		"/beastmaster#avatar_animation",
+		"/huntress#avatar_animation",
+	}
+	for index, url in ipairs(avatar_urls) do
+		msg.post(url, "creator_focus", { selected = index == class_id + 1 })
+	end
+	msg.post(avatar_urls[class_id + 1], "creator_attack")
+end
+
+local function set_status(self, text, color)
+	self.status = text or ""
+	if self.screen == "world" then self.status = truncate_utf8(self.status, 50) end
+	if self.status_node then
+		gui.set_font(self.status_node, "cinzel")
+		set_text(self, self.status_node, self.status)
+		gui.set_color(self.status_node, color or (is_access_screen(self.screen) and COLOR_LOGIN_LABEL or COLOR_MUTED))
+	end
+	if self.status_shadow_node then
+		set_text(self, self.status_shadow_node, self.status)
+	end
+end
+
+local function set_skill_button_enabled(button, enabled)
+	if not button then return end
+	enabled = enabled == true
+	local owner = button.owner
+	if owner then
+		enabled = enabled and button.screen == owner.screen
+		if button.panel then enabled = enabled and panel_is_open(owner, button.panel) end
+		if enabled and button.action:sub(1, 6) == "mount_" then
+			enabled = owner.mount_panel_open == true
+		elseif enabled and button.action:sub(1, 6) == "trade_" then
+			enabled = owner.trade_panel_open == true
+		elseif enabled and button.action:sub(1, 5) == "shop_" then
+			enabled = owner.shop_panel_open == true
+		end
+	else
+		enabled = false
+	end
+	set_surface_enabled(button.box, enabled)
+	set_surface_enabled(button.frame, enabled)
+	gui.set_enabled(button.text, enabled)
+	local shadow = owner and owner.text_shadow_by_node and owner.text_shadow_by_node[button.text]
+	if shadow then gui.set_enabled(shadow, enabled) end
+end
+
+local function refresh_skill_panel(self)
+	local skill_ids = CaracatoaSkills.by_class[self.world_class or -1] or {}
+	self.world_skill_slot_ids = { skill_ids[1], skill_ids[2], skill_ids[3] }
+	for slot = 1, 3 do
+		local skill_id = self.world_skill_slot_ids[slot]
+		local definition = skill_id and CaracatoaSkills.by_id[skill_id]
+		local status_node = self.world_skill_status_nodes[slot]
+		local learn_button = self.world_skill_learn_buttons[slot]
+		local cast_button = self.world_skill_cast_buttons[slot]
+		if not definition then
+			set_text(self, status_node, slot == 1 and "Sem habilidade inicial" or "Mais habilidades em breve")
+			set_text(self, learn_button.text, "Indisponível")
+			set_text(self, cast_button.text, string.format("%d · —", slot))
+			set_skill_button_enabled(learn_button, false)
+			set_skill_button_enabled(cast_button, false)
+		else
+			local learned = self.world_skill_learned and self.world_skill_learned[skill_id] == true
+			local target_detail = (definition.effect_type == "heal" or definition.effect_type == "defense") and "Auto" or ("Alc. " .. definition.range_tiles)
+			local effect_detail = definition.effect_type == "defense" and ("+" .. tostring(definition.defense_bonus) .. " DEF") or nil
+			local detail = truncate_utf8(string.format("%s · %d MP · %s", definition.name, definition.mana, effect_detail or target_detail), 34)
+			if learned then
+				set_text(self, status_node, truncate_utf8(detail .. " · OK", 36))
+				set_text(self, learn_button.text, "Aprendida")
+				set_skill_button_enabled(learn_button, false)
+				set_text(self, cast_button.text, string.format("%d · %s", slot, truncate_utf8(definition.name, 10)))
+				set_skill_button_enabled(cast_button, true)
+			else
+				local lock_reason = nil
+				if (self.world_level or 1) < definition.required_level then
+					lock_reason = "Nv. " .. definition.required_level
+				else
+					for _, prerequisite_id in ipairs(definition.prerequisites) do
+						if not self.world_skill_learned or not self.world_skill_learned[prerequisite_id] then
+							local prerequisite = CaracatoaSkills.by_id[prerequisite_id]
+							lock_reason = prerequisite and ("Requer " .. prerequisite.name) or "Pré-requisito"
+							break
+						end
+					end
+				end
+				set_text(self, status_node, truncate_utf8(detail .. (lock_reason and (" · " .. lock_reason) or " · 1 pt"), 36))
+				set_text(self, learn_button.text, truncate_utf8(lock_reason or (self.world_skill_points_value > 0 and "Aprender" or "Sem pontos"), 14))
+				set_skill_button_enabled(learn_button, not lock_reason and self.world_skill_points_value > 0)
+				set_text(self, cast_button.text, string.format("%d · Bloq.", slot))
+				set_skill_button_enabled(cast_button, false)
+			end
+		end
+	end
+	for _, button in ipairs(self.world_skill_learn_buttons or {}) do
+		set_text_scale(self, button.text, 0.56)
+	end
+	for _, node in ipairs(self.world_skill_status_nodes or {}) do
+		set_text_scale(self, node, 0.56)
+	end
+	set_text(self, self.world_skill_points, string.format("Pontos de habilidade: %d", self.world_skill_points_value or 0))
+end
+
+local function cast_skill_slot(self, slot)
+	local skill_id = self.world_skill_slot_ids and self.world_skill_slot_ids[slot]
+	if not skill_id then
+		set_status(self, "Este atalho ainda não tem uma habilidade.", COLOR_GOLD)
+		return false
+	end
+	if not self.world_skill_learned or self.world_skill_learned[skill_id] ~= true then
+		set_status(self, "Aprenda esta habilidade na trilha antes de usá-la.", COLOR_GOLD)
+		return false
+	end
+	msg.post("/local_connection#connection", "world_skill_cast", { skill_id = skill_id })
+	return true
+end
+
+local MOUNT_NAMES = {
+	equus = "Equus da Vigília", tigre = "Tigre das Cinzas", lobo = "Lobo do Desfiladeiro",
+	grifo = "Grifo do Baluarte", hipogrifo = "Hipogrifo do Véu", pegaso = "Pégaso da Aurora",
+	dragao = "Dragão Rubro", fentris = "Fentris do Eclipse",
+}
+local MOUNT_STAGES = { egg = "Ovo", juvenile = "Jovem", adult = "Adulto", dead = "Morta" }
+local MOUNT_REASONS = {
+	[1] = "A incubação ainda está em espera.", [2] = "Falta a poeira exigida no inventário.",
+	[3] = "Falta Ração de Campo no inventário.", [4] = "O nível do personagem ainda é insuficiente.",
+	[5] = "A montaria não atende aos requisitos dessa ação.", [6] = "O serviço de montarias está indisponível.",
+	[7] = "A ação de montaria foi recusada.",
+}
+
+local function set_mount_panel_open(self, open)
+	self.mount_panel_open = open == true
+	for _, node in ipairs(self.mount_panel_nodes or {}) do
+		gui.set_enabled(node, self.screen == "world" and self.mount_panel_open)
+	end
+	if self.mount_panel_toggle_button then
+		set_text(self, self.mount_panel_toggle_button.text, self.mount_panel_open and "Fechar montarias" or "Montarias")
+	end
+end
+
+local function trade_offer_summary(offer)
+	if type(offer) ~= "table" then return "Oferta vazia" end
+	local item_text = "sem item"
+	if offer.itemClientId ~= nil and offer.itemClientId ~= json.null then
+		local definition = CaracatoaItems.by_id[offer.itemClientId]
+		item_text = definition and definition.name or ("Item #" .. tostring(offer.itemClientId))
+	end
+	local ready_text = offer.ready and "confirmada" or "aguardando"
+	return string.format("%s  ·  %s gold  ·  %s", item_text, tostring(offer.gold or 0), ready_text)
+end
+
+local function refresh_trade_panel(self)
+	if not self.world_trade_status then return end
+	local state = self.world_trade_state
+	local trade = state and state.trade
+	local message = self.world_trade_local_message or (state and state.message) or "Convide alguém a até 5 passos para negociar."
+	if trade then
+		set_text(self, self.world_trade_identity, string.format("%s  ·  revisão %d  ·  %d s", trade.partnerName, trade.revision, math.ceil((trade.remainingMs or 0) / 1000)))
+		set_text(self, self.world_trade_self_offer, "SUA OFERTA  " .. trade_offer_summary(trade.selfOffer))
+		set_text(self, self.world_trade_partner_offer, "OFERTA DE " .. string.upper(trade.partnerName) .. "  " .. trade_offer_summary(trade.partnerOffer))
+	else
+		set_text(self, self.world_trade_identity, "Nenhuma negociação ativa")
+		set_text(self, self.world_trade_self_offer, "SUA OFERTA  —")
+		set_text(self, self.world_trade_partner_offer, "OFERTA DO OUTRO LADO  —")
+	end
+	if state and state.gold_balance ~= nil then
+		message = message .. string.format("  ·  Saldo: %s gold", tostring(state.gold_balance))
+	end
+	set_text(self, self.world_trade_status, message)
+	local active = trade and (trade.state == "invited" or trade.state == "offering")
+	local incoming = trade and trade.state == "invited" and trade.incoming
+	local offering = trade and trade.state == "offering"
+	local enabled = not self.world_trade_pending
+	set_skill_button_enabled(self.world_trade_invite_button, enabled and not active)
+	set_skill_button_enabled(self.world_trade_accept_button, enabled and incoming)
+	set_skill_button_enabled(self.world_trade_decline_button, enabled and incoming)
+	set_skill_button_enabled(self.world_trade_offer_item_button, enabled and offering)
+	set_skill_button_enabled(self.world_trade_offer_gold_button, enabled and offering)
+	set_skill_button_enabled(self.world_trade_ready_button, enabled and offering and not trade.selfOffer.ready)
+	set_skill_button_enabled(self.world_trade_cancel_button, enabled and active)
+	if self.world_trade_ready_button then
+		set_text(self, self.world_trade_ready_button.text, offering and trade.selfOffer.ready and "Confirmada" or "Confirmar")
+	end
+	if self.trade_panel_toggle_button then
+		set_text(self, self.trade_panel_toggle_button.text, self.trade_panel_open and "Fechar troca" or "Negociar")
+	end
+end
+
+local function set_trade_panel_open(self, open)
+	self.trade_panel_open = open == true
+	if self.trade_panel_open then set_mount_panel_open(self, false) end
+	for _, node in ipairs(self.trade_panel_nodes or {}) do
+		gui.set_enabled(node, self.screen == "world" and self.trade_panel_open)
+	end
+	if self.trade_panel_toggle_button then
+		set_text(self, self.trade_panel_toggle_button.text, self.trade_panel_open and "Fechar troca" or "Negociar")
+	end
+	if not self.trade_panel_open and (self.active_field == "trade_target" or self.active_field == "trade_gold") then
+		set_active_field(self, nil)
+	end
+	refresh_trade_panel(self)
+end
+
+local function player_shop_price(self)
+	local text = self.values.shop_price or ""
+	if text == "" then return nil end
+	local price = tonumber(text)
+	if not price or price < 1 or price > 2147483647 or price ~= math.floor(price) then return nil end
+	return price
+end
+
+local function refresh_player_shop_panel(self)
+	if not self.world_shop_status then return end
+	local state = self.world_shop_state or {}
+	local listings = state.listings or {}
+	local selected_index = math.max(1, math.min(#listings, self.world_shop_selected_index or 1))
+	if #listings == 0 then selected_index = 1 end
+	self.world_shop_selected_index = selected_index
+	local selected = listings[selected_index]
+	for row = 1, 8 do
+		local button = self.world_shop_rows[row]
+		local listing = listings[row]
+		if listing then
+			local definition = CaracatoaItems.by_id[listing.clientItemId]
+			local name = definition and definition.name or ("Item #" .. tostring(listing.clientItemId))
+			local own = listing.own and "VOCÊ" or listing.sellerName
+			local tier = listing.refinementLevel and listing.refinementLevel > 0 and (" +" .. listing.refinementLevel) or ""
+			set_text(self, button.text, string.format("%s  %s%s ×%d  ·  %s gold", own, name, tier, listing.stackCount or 1, tostring(listing.askingGold)))
+			set_surface_color(button.box, row == selected_index and COLOR_BUTTON_SELECTED or COLOR_BUTTON)
+			set_skill_button_enabled(button, not self.world_shop_pending)
+		else
+			set_text(self, button.text, "—")
+			set_surface_color(button.box, COLOR_FIELD)
+			set_skill_button_enabled(button, false)
+		end
+	end
+	if selected then
+		local definition = CaracatoaItems.by_id[selected.clientItemId]
+		local item_name = definition and definition.name or ("Item #" .. tostring(selected.clientItemId))
+		local rarity = selected.rarity and string.upper(selected.rarity) or "ITEM"
+		local refine = selected.refinementLevel and ("  ·  +" .. selected.refinementLevel) or ""
+		set_text(self, self.world_shop_selection, string.format("%s  ·  %s%s  ·  %s gold", item_name, rarity, refine, tostring(selected.askingGold)))
+		set_text(self, self.world_shop_seller, selected.own and "Anunciado por você" or ("Vendedor  ·  " .. selected.sellerName))
+	else
+		set_text(self, self.world_shop_selection, "Selecione um anúncio para ver os detalhes.")
+		set_text(self, self.world_shop_seller, #listings == 0 and "Nenhum anúncio nesta página." or "")
+	end
+	local message = self.world_shop_local_message or state.message or "A feira do Bastião reúne anúncios de jogadores."
+	if state.gold_balance ~= nil then message = message .. string.format("  ·  Saldo %s gold", tostring(state.gold_balance)) end
+	set_text(self, self.world_shop_status, message)
+	if self.world_shop_receipt then
+		local receipt = self.world_shop_receipt
+		local definition = CaracatoaItems.by_id[receipt.clientItemId]
+		local item_name = definition and definition.name or ("Item #" .. tostring(receipt.clientItemId))
+		set_text(self, self.world_shop_receipt_text, string.format("Última compra  ·  %s de %s", item_name, receipt.sellerName))
+	else
+		set_text(self, self.world_shop_receipt_text, "Mercado de jogadores  ·  anúncios expiram em 7 dias")
+	end
+	local enabled = not self.world_shop_pending
+	local inventory_slot = self.world_inventory_selected_slot
+	local inventory_item = inventory_slot ~= nil and self.world_inventory and self.world_inventory[inventory_slot]
+	set_skill_button_enabled(self.world_shop_market_button, enabled)
+	set_skill_button_enabled(self.world_shop_mine_button, enabled)
+	set_skill_button_enabled(self.world_shop_refresh_button, enabled)
+	set_skill_button_enabled(self.world_shop_create_button, enabled and inventory_item ~= nil and player_shop_price(self) ~= nil)
+	set_skill_button_enabled(self.world_shop_buy_button, enabled and selected ~= nil and not selected.own)
+	set_skill_button_enabled(self.world_shop_cancel_button, enabled and selected ~= nil and selected.own)
+	if self.shop_panel_toggle_button then
+		set_text(self, self.shop_panel_toggle_button.text, self.shop_panel_open and "Fechar feira" or "Feira")
+	end
+end
+
+local function set_shop_panel_open(self, open)
+	self.shop_panel_open = open == true
+	for _, node in ipairs(self.shop_panel_nodes or {}) do
+		gui.set_enabled(node, self.screen == "world" and self.shop_panel_open)
+	end
+	if self.shop_panel_toggle_button then
+		set_text(self, self.shop_panel_toggle_button.text, self.shop_panel_open and "Fechar feira" or "Feira")
+	end
+	if not self.shop_panel_open and self.active_field == "shop_price" then set_active_field(self, nil) end
+	refresh_player_shop_panel(self)
+end
+
+local function request_player_shop_action(self, action)
+	if self.world_shop_pending then return end
+	local payload = { action = action }
+	if action == "create" then
+		local slot = self.world_inventory_selected_slot
+		local price = player_shop_price(self)
+		if slot == nil or not (self.world_inventory or {})[slot] then
+			self.world_shop_local_message = "Selecione no inventário o item que deseja anunciar."
+			refresh_player_shop_panel(self)
+			return
+		end
+		if not price then
+			self.world_shop_local_message = "Informe um preço inteiro entre 1 e 2.147.483.647 gold."
+			refresh_player_shop_panel(self)
+			set_active_field(self, "shop_price")
+			return
+		end
+		payload.inventory_slot = slot
+		payload.asking_gold = price
+	elseif action == "buy" or action == "cancel" then
+		local listing = self.world_shop_state and self.world_shop_state.listings and self.world_shop_state.listings[self.world_shop_selected_index or 1]
+		if not listing then
+			self.world_shop_local_message = "Selecione um anúncio ativo."
+			refresh_player_shop_panel(self)
+			return
+		end
+		payload.listing_id = listing.listingId
+	end
+	self.world_shop_pending = true
+	self.world_shop_local_message = "Aguardando o servidor Caracatoa confirmar a operação..."
+	refresh_player_shop_panel(self)
+	msg.post("/local_connection#connection", "world_shop_action", payload)
+end
+
+local function request_trade_action(self, action, offer_item)
+	local state = self.world_trade_state
+	local trade = state and state.trade
+	local trade_id = trade and trade.tradeId or nil
+	if action ~= "invite" and not trade_id then
+		self.world_trade_local_message = "Não há convite ativo para esta ação."
+		refresh_trade_panel(self)
+		return
+	end
+	local payload = { action = action, trade_id = trade_id }
+	if action == "invite" then
+		payload.target_name = self.values.trade_target or ""
+	elseif action == "offer" then
+		local gold_text = self.values.trade_gold or ""
+		local gold = gold_text == "" and 0 or tonumber(gold_text)
+		if not gold or gold < 0 or gold > 2147483647 or gold ~= math.floor(gold) then
+			self.world_trade_local_message = "Informe um valor inteiro de gold até 2.147.483.647."
+			refresh_trade_panel(self)
+			return
+		end
+		payload.inventory_slot = nil
+		if offer_item and self.world_inventory_selected_slot ~= nil and self.world_inventory[self.world_inventory_selected_slot] then
+			payload.inventory_slot = self.world_inventory_selected_slot
+		end
+		payload.gold = gold
+	elseif action == "ready" then
+		payload.revision = trade.revision
+	end
+	self.world_trade_pending = true
+	self.world_trade_local_message = "Aguardando confirmação do servidor local..."
+	refresh_trade_panel(self)
+	msg.post("/local_connection#connection", "world_trade_action", payload)
+end
+
+local function refresh_mount_panel(self)
+	if not self.mount_panel_status then return end
+	local mounts = self.world_mounts or {}
+	local index = math.max(1, math.min(#mounts, self.world_mount_selected_index or 1))
+	self.world_mount_selected_index = index
+	local mount = mounts[index]
+	local inventory_slot = self.world_inventory_selected_slot
+	local inventory_item = inventory_slot ~= nil and self.world_inventory and self.world_inventory[inventory_slot]
+	local item_definition = inventory_item and CaracatoaItems.by_id[inventory_item.client_item_id]
+	local item_name = item_definition and item_definition.name or "nenhum"
+	local can_use = mount ~= nil and mount.stage ~= "egg" and mount.stage ~= "dead"
+	local level = self.world_level or 1
+	local ready = self.world_mount_snapshot_ready == true
+	local pending = self.world_mount_pending == true
+	if not mount then
+		set_text(self, self.world_mount_name, "Nenhuma montaria registrada")
+		set_text(self, self.world_mount_stage, ready and "O servidor ainda não entregou um ovo." or "Aguardando dados do servidor local.")
+		set_text(self, self.world_mount_requirement, "Nível requerido: —")
+		set_text(self, self.world_mount_hunger, "Fome: —")
+		set_text(self, self.world_mount_vitality, "Vida: —")
+		set_text(self, self.world_mount_bonuses, "Bônus ativos: —")
+		set_text(self, self.world_mount_wait, "Selecione uma montaria para ver o ciclo de vida.")
+	else
+		set_text(self, self.world_mount_name, string.format("%s  ·  %d/%d", MOUNT_NAMES[mount.species_id] or mount.species_id, index, #mounts))
+		set_text(self, self.world_mount_stage, string.format("%s  ·  nível %d  ·  EXP %d", MOUNT_STAGES[mount.stage] or mount.stage, mount.level, mount.experience))
+		set_text(self, self.world_mount_requirement, string.format("Nível requerido: %d  ·  seu nível: %d", mount.required_level, level))
+		set_text(self, self.world_mount_hunger, string.format("Fome  %d / %d", mount.hunger, mount.max_hunger))
+		set_text(self, self.world_mount_vitality, string.format("Vida  %d / %d", mount.vitality, mount.max_vitality))
+		local bonus = mount.bonuses or {}
+		set_text(self, self.world_mount_bonuses, string.format(
+			"HP +%d  ATQ +%d  MAG +%d  DEF +%d  MOV +%.2f%%  ABS +%.2f%%",
+			bonus.hp or 0, bonus.physical_attack or 0, bonus.magic_attack or 0, bonus.defense or 0,
+			(bonus.move_speed_bps or 0) / 100, (bonus.absorption_bps or 0) / 100))
+		set_text(self, self.world_mount_wait, mount.stage == "egg"
+			and string.format("Incubações restantes: %d  ·  espera: %d s", mount.incubation_remaining or 0, math.ceil((mount.incubation_wait_ms or 0) / 1000))
+			or (mount.riding and "Montada  ·  a fome é consumida enquanto você está no mundo." or (mount.active and "Selecionada  ·  pronta para montar." or "A montaria precisa ser selecionada antes de montar.")))
+	end
+	local result_text = "Dados carregados do servidor local."
+	if self.world_mount_status_result then
+		local result = self.world_mount_status_result
+		if result.status == 1 then result_text = "Ação confirmada e salva pelo servidor."
+		elseif result.status == 2 then result_text = MOUNT_REASONS[result.reason] or "O servidor recusou a ação."
+		elseif result.status == 3 then result_text = MOUNT_REASONS[result.reason] or "A incubação ainda está em espera."
+		elseif result.status == 4 then result_text = MOUNT_REASONS[result.reason] or "Material necessário não encontrado."
+		end
+	end
+	set_text(self, self.world_mount_status, result_text)
+	set_text(self, self.world_mount_material, string.format("Material no slot selecionado: %s%s", item_name, inventory_slot ~= nil and (" (#" .. tostring(inventory_slot + 1) .. ")") or ""))
+	local item_action_ready = ready and not pending and inventory_slot ~= nil and inventory_item ~= nil
+	set_skill_button_enabled(self.world_mount_incubate_button, item_action_ready and mount and mount.stage == "egg")
+	set_skill_button_enabled(self.world_mount_feed_button, item_action_ready and can_use and mount.hunger < mount.max_hunger)
+	set_skill_button_enabled(self.world_mount_evolve_button, item_action_ready and mount and mount.stage == "juvenile" and mount.level >= 10)
+	set_skill_button_enabled(self.world_mount_select_button, ready and not pending and can_use and not mount.active and level >= (mount.required_level or 400))
+	set_skill_button_enabled(self.world_mount_ride_button, ready and not pending and can_use and
+		((mount.riding == true) or (mount.active == true and mount.hunger > 0 and mount.vitality > 0 and level >= (mount.required_level or 400))))
+	set_text(self, self.world_mount_select_button.text, mount and mount.active and "Selecionada" or "Selecionar")
+	set_text(self, self.world_mount_ride_button.text, mount and mount.riding and "Desmontar" or "Montar")
+	for _, button in ipairs({ self.world_mount_incubate_button, self.world_mount_feed_button, self.world_mount_evolve_button,
+		self.world_mount_select_button, self.world_mount_ride_button }) do
+		if pending then set_skill_button_enabled(button, false) end
+	end
+	set_skill_button_enabled(self.world_mount_previous_button, ready and #mounts > 1)
+	set_skill_button_enabled(self.world_mount_next_button, ready and #mounts > 1)
+	set_skill_button_enabled(self.world_mount_refresh_button, not pending)
+end
+
+local function set_screen(self, screen)
+	self.screen = screen
+	set_access_idle_throttle(self)
+	print("[Caracatoa HUD] tela=" .. tostring(screen))
+	for name, nodes in pairs(self.screen_nodes) do
+		local visible = name == screen
+		for _, node in ipairs(nodes) do gui.set_enabled(node, visible) end
+	end
+	if self.mount_panel_nodes then set_mount_panel_open(self, screen == "world" and self.mount_panel_open == true) end
+	if self.trade_panel_nodes then set_trade_panel_open(self, screen == "world" and self.trade_panel_open == true) end
+	if screen == "create" then
+		msg.post("/transknight#movement", "creator_show")
+	elseif screen == "login" or screen == "register" then
+		msg.post("/transknight#movement", "access_hide")
+	elseif screen ~= "world" then
+		msg.post("/transknight#movement", "preview_hide")
+	end
+	if self.shop_panel_nodes then set_shop_panel_open(self, screen == "world" and self.shop_panel_open == true) end
+	self.active_field = nil
+	if self.status_node then
+		local access = screen == "login" or screen == "register"
+		local create_screen = screen == "create"
+		local world_screen = screen == "world"
+		local x = screen == "register" and 320 or 270
+		local y = screen == "register" and 108 or 130
+		local status_x = create_screen and 1000 or (world_screen and 640 or 72)
+		local status_y = create_screen and 26 or (world_screen and 142 or 42)
+		local pivot = (access or create_screen or world_screen) and gui.PIVOT_CENTER or gui.PIVOT_W
+		local scale = access and 0.76 or (create_screen and 0.54 or (world_screen and 0.54 or 1))
+		gui.set_position(self.status_node, vmath.vector3(access and x or status_x, access and y or status_y, 0.3))
+		gui.set_pivot(self.status_node, pivot)
+		gui.set_scale(self.status_node, vmath.vector3(scale, scale, 1))
+		if self.status_shadow_node then
+			gui.set_position(self.status_shadow_node, vmath.vector3(access and x + 2 or status_x + 2, access and y - 2 or status_y - 2, 0.295))
+			gui.set_pivot(self.status_shadow_node, pivot)
+			gui.set_scale(self.status_shadow_node, vmath.vector3(scale, scale, 1))
+			gui.set_enabled(self.status_shadow_node, access or create_screen or world_screen)
+		end
+	end
+	if self.status_shadow_node then gui.set_font(self.status_shadow_node, "cinzel") end
+	if self.status_node then gui.set_font(self.status_node, "cinzel") end
+	for _, field in ipairs(self.fields) do render_field(self, field.name) end
+end
+
+local function ascii_input(value, mode)
+	local out = {}
+	for index = 1, #value do
+		local byte = string.byte(value, index)
+		local allowed = byte >= 32 and byte <= 126
+		if mode == "account" then
+			allowed = (byte >= 48 and byte <= 57) or (byte >= 65 and byte <= 90) or
+				(byte >= 97 and byte <= 122) or byte == 46 or byte == 45 or byte == 95
+		elseif mode == "pin" then
+			allowed = byte >= 48 and byte <= 57
+		elseif mode == "character_name" then
+			allowed = (byte >= 48 and byte <= 57) or (byte >= 65 and byte <= 90) or
+				(byte >= 97 and byte <= 122) or byte == 95
+		elseif mode == "trade_target" then
+			allowed = (byte >= 48 and byte <= 57) or (byte >= 65 and byte <= 90) or
+				(byte >= 97 and byte <= 122) or byte == 95
+		elseif mode == "trade_gold" then
+			allowed = byte >= 48 and byte <= 57
+		elseif mode == "shop_price" then
+			allowed = byte >= 48 and byte <= 57
+		end
+		if allowed then out[#out + 1] = string.char(byte) end
+	end
+	return table.concat(out)
+end
+
+local function field_limit(name)
+	return ({ account = 15, password = 11, password_confirm = 11, pin = 6, character_name = 16,
+		trade_target = 16, trade_gold = 10, shop_price = 10 })[name] or 0
+end
+
+local function append_text(self, text)
+	local name = self.active_field
+	if not name then return end
+	local value = self.values[name] or ""
+	local limit = field_limit(name)
+	local filtered = ascii_input(text or "", name)
+	local available = limit - #value
+	if available > 0 and #filtered > 0 then
+		self.values[name] = value .. filtered:sub(1, available)
+		render_field(self, name)
+		if name == "shop_price" then refresh_player_shop_panel(self) end
+	end
+end
+
+local function clear_value(self, name)
+	self.values[name] = ""
+	render_field(self, name)
+end
+
+local function send_login(self)
+	local account = self.values.account or ""
+	local password = self.values.password or ""
+	if #account < 1 or #password < 1 then
+		set_status(self, "Preencha o ID da conta e a senha.", COLOR_GOLD)
+		return
+	end
+	if not CaracatoaSession.is_valid_account_id(account) then
+		set_status(self, "ID inválido: use 1–15 caracteres e comece com letra ou número.", COLOR_GOLD)
+		return
+	end
+	self.login_pending = true
+	set_access_idle_throttle(self)
+	set_status(self, "Conectando ao servidor Caracatoa local...", COLOR_LOGIN_LABEL)
+	msg.post("/local_connection#connection", "ui_login_submit", {
+		account_id = account,
+		password = password,
+	})
+	clear_value(self, "password")
+	self.active_field = nil
+end
+
+local function open_registration(self)
+	self.values.password = ""
+	self.values.password_confirm = ""
+	self.values.pin = ""
+	self.login_pending = false
+	self.registration_pending = false
+	set_screen(self, "register")
+	set_active_field(self, "account")
+	set_status(self, "Preencha os quatro campos para criar sua conta.", COLOR_LOGIN_LABEL)
+end
+
+local function send_registration(self)
+	if self.registration_pending then
+		set_status(self, "Aguarde a resposta do cadastro atual.", COLOR_GOLD)
+		return
+	end
+	local account = self.values.account or ""
+	local password = self.values.password or ""
+	local confirmation = self.values.password_confirm or ""
+	local pin = self.values.pin or ""
+	if not CaracatoaSession.is_valid_account_id(account) then
+		set_active_field(self, "account")
+		set_status(self, account == "" and "Digite um ID de 1 a 15 caracteres." or "ID inválido. Comece com letra ou número.", COLOR_GOLD)
+		return
+	end
+	if #password < 8 or #password > 11 then
+		set_active_field(self, "password")
+		set_status(self, password == "" and "Digite uma senha de 8 a 11 caracteres." or "A senha deve ter de 8 a 11 caracteres.", COLOR_GOLD)
+		return
+	end
+	if confirmation == "" or password ~= confirmation then
+		set_active_field(self, "password_confirm")
+		set_status(self, confirmation == "" and "Repita a senha no campo indicado." or "As senhas não coincidem. Confira novamente.", COLOR_GOLD)
+		return
+	end
+	if #pin < 4 or #pin > 6 or not pin:match("^%d+$") then
+		set_active_field(self, "pin")
+		set_status(self, pin == "" and "Digite um PIN de 4 a 6 dígitos." or "O PIN deve ter de 4 a 6 dígitos.", COLOR_GOLD)
+		return
+	end
+	self.registration_pending = true
+	set_access_idle_throttle(self)
+	msg.post("/local_connection#connection", "ui_register_account", {
+		account_id = account,
+		password = password,
+		token = pin,
+	})
+	self.registration_account = account
+	set_active_field(self, nil)
+	set_status(self, "Enviando cadastro ao servidor local...", COLOR_LOGIN_LABEL)
+end
+
+local function send_pin(self)
+	local pin = self.values.pin or ""
+	if #pin < 4 or #pin > 6 then
+		set_status(self, "A senha numérica deve ter de 4 a 6 dígitos.", COLOR_GOLD)
+		return
+	end
+	msg.post("/local_connection#connection", "ui_pin_submit", { pin = pin })
+	clear_value(self, "pin")
+	set_status(self, "Validando a senha numérica no servidor local...", COLOR_MUTED)
+	self.active_field = nil
+end
+
+local function send_create(self)
+	local name = self.values.character_name or ""
+	if #name < 1 then
+		set_status(self, "Digite o nome da personagem.", COLOR_GOLD)
+		return
+	end
+	msg.post("/local_connection#connection", "ui_create_character", {
+		slot = self.pending_slot,
+		class_id = self.selected_class,
+		name = name,
+	})
+	clear_value(self, "character_name")
+	set_status(self, "Criando personagem no servidor local...", COLOR_MUTED)
+	self.active_field = nil
+end
+
+local show_create_screen
+
+local function submit_primary(self)
+	if self.screen == "login" then
+		send_login(self)
+	elseif self.screen == "register" then
+		send_registration(self)
+	elseif self.screen == "pin" then
+		send_pin(self)
+	elseif self.screen == "create" then
+		send_create(self)
+	elseif self.screen == "roster" then
+		for slot = 1, 4 do
+			if self.roster[slot] and self.roster[slot].name == "" then
+				show_create_screen(self, slot - 1)
+				return
+			end
+		end
+		set_status(self, "Os quatro espaços de personagem já estão ocupados.", COLOR_GOLD)
+	end
+end
+
+show_create_screen = function(self, slot)
+	self.pending_slot = slot
+	self.selected_class = 0
+	self.values.character_name = ""
+	set_screen(self, "create")
+	set_active_field(self, "character_name")
+	select_creator_class(self, self.selected_class)
+	set_status(self, "Veja a classe, leia sua história e escolha um nome.")
+end
+
+local function send_slot_entry(self, slot)
+	local character = self.roster[slot + 1]
+	if not character or character.name == "" then
+		show_create_screen(self, slot)
+		return
+	end
+	set_status(self, "Entrando no mundo local...", COLOR_MUTED)
+	msg.post("/local_connection#connection", "ui_select_character", { slot = slot })
+end
+
+local INVENTORY_SLOT_COUNT = 60
+local INVENTORY_PAGE_SIZE = 20
+local INVENTORY_GRID_COLUMNS = 5
+local INVENTORY_CELL_WIDTH = 56
+local INVENTORY_CELL_HEIGHT = 52
+local INVENTORY_GRID_GAP_X = 12
+local INVENTORY_GRID_GAP_Y = 7
+
+local function is_allowed_for_class(definition, class_id)
+	for _, allowed_id in ipairs(definition.allowed_class_ids or {}) do
+		if allowed_id == class_id then return true end
+	end
+	return false
+end
+
+local function format_itemization_affix(affix)
+	local definition = CaracatoaItemization.by_affix_id[affix.client_affix_id]
+	local name = definition and definition.name or ("Afixo " .. tostring(affix.client_affix_id))
+	if definition and definition.unit == "basis-points" then
+		local percent = affix.value / 100
+		return string.format("%s +%s%%", name, percent == math.floor(percent) and tostring(math.floor(percent)) or string.format("%.1f", percent))
+	end
+	return string.format("%s +%d", name, affix.value)
+end
+
+local function refresh_inventory_panel(self)
+	if not self.world_inventory_rows then return end
+	local page = self.world_inventory_page or 0
+	local page_count = math.ceil(INVENTORY_SLOT_COUNT / INVENTORY_PAGE_SIZE)
+	for index = 1, INVENTORY_PAGE_SIZE do
+		local slot = page * INVENTORY_PAGE_SIZE + index - 1
+		local item = self.world_inventory and self.world_inventory[slot]
+		local button = self.world_inventory_rows[index]
+		if item then
+			local definition = CaracatoaItems.by_id[item.client_item_id]
+			local name = definition and definition.name or CaracatoaItemization.by_item_id[item.client_item_id] or ("Item " .. tostring(item.client_item_id))
+			local equipped = false
+			if definition and definition.equipment_slot >= 0 then
+				local current = self.world_equipment and self.world_equipment[definition.equipment_slot]
+				equipped = current ~= nil and current.inventory_slot == slot
+			end
+			local itemization = self.world_itemization_details and self.world_itemization_details[slot]
+			local refinement_level = itemization and itemization.refinement_level or 0
+			local refinement = refinement_level > 0 and string.format("+%d", refinement_level) or ""
+			local item_label = string.format("%s%s ×%d%s", truncate_utf8(name, 4), refinement, item.stack_count or 1, equipped and " E" or "")
+			set_text(self, button.text, item_label)
+			local rarity_color = itemization and INVENTORY_RARITY_TEXT_COLORS[itemization.rarity_id] or COLOR_TEXT
+			gui.set_color(button.text, equipped and COLOR_GOLD or rarity_color)
+			set_surface_color(button.box, self.world_inventory_selected_slot == slot and COLOR_BUTTON_SELECTED or COLOR_BUTTON)
+			set_skill_button_enabled(button, true)
+		else
+			set_text(self, button.text, "—")
+			gui.set_color(button.text, COLOR_MUTED)
+			set_surface_color(button.box, COLOR_FIELD)
+			set_skill_button_enabled(button, false)
+		end
+	end
+	set_text(self, self.world_inventory_page_label, string.format("%02d–%02d / 60", page * INVENTORY_PAGE_SIZE + 1, math.min((page + 1) * INVENTORY_PAGE_SIZE, INVENTORY_SLOT_COUNT)))
+	set_skill_button_enabled(self.world_inventory_prev_button, page > 0)
+	set_skill_button_enabled(self.world_inventory_next_button, page + 1 < page_count)
+	local slot = self.world_inventory_selected_slot
+	local item = slot ~= nil and self.world_inventory and self.world_inventory[slot]
+	local definition = item and CaracatoaItems.by_id[item.client_item_id]
+	local itemization = slot ~= nil and self.world_itemization_details and self.world_itemization_details[slot]
+	if itemization then
+		local rarity = CaracatoaItemization.rarity_names[itemization.rarity_id] or "Raridade"
+		set_text(self, self.world_itemization_rarity, truncate_utf8(string.format("%s · Nv. %d · +%d · ATQ %d · MAG %d", rarity, itemization.item_level, itemization.refinement_level or 0, itemization.base_stats.physical_damage, itemization.base_stats.magic_attack), 38))
+		set_text(self, self.world_itemization_stats, string.format("DEF %d · HP +%d · MP +%d", itemization.base_stats.physical_defense, itemization.base_stats.max_hp, itemization.base_stats.max_mp))
+		local affix_labels = {}
+		for _, affix in ipairs(itemization.affixes or {}) do affix_labels[#affix_labels + 1] = format_itemization_affix(affix) end
+		set_text(self, self.world_itemization_affixes, truncate_utf8(#affix_labels > 0 and table.concat(affix_labels, " · ") or "Sem afixos", 38))
+	else
+		set_text(self, self.world_itemization_rarity, "Selecione um item para ver raridade e nível.")
+		set_text(self, self.world_itemization_stats, "")
+		set_text(self, self.world_itemization_affixes, "Atributos rolados aparecem aqui.")
+	end
+	local can_equip = self.world_inventory_ready and self.world_equipment_ready and definition and
+		definition.equipment_slot >= 0 and is_allowed_for_class(definition, self.world_class)
+	local equipped = can_equip and self.world_equipment[definition.equipment_slot]
+	local is_equipped = equipped and equipped.inventory_slot == slot
+	if can_equip then
+		set_text(self, self.world_equipment_toggle_button.text, is_equipped and "Remover equipamento" or "Equipar selecionado")
+	else
+		set_text(self, self.world_equipment_toggle_button.text, "Selecione um equipamento")
+	end
+	set_skill_button_enabled(self.world_equipment_toggle_button, can_equip == true)
+	local can_refine = self.world_inventory_ready and itemization ~= nil and definition and definition.equipment_slot >= 0
+	local refinement_level = itemization and itemization.refinement_level or 0
+	set_text(self, self.world_refinement_button.text, can_refine and "Refinar selecionado" or "Selecione equipamento itemizado")
+	set_skill_button_enabled(self.world_refinement_button, can_refine == true and not self.world_refinement_pending)
+	set_skill_button_enabled(self.world_divine_refinement_button, can_refine == true and refinement_level >= 9 and not self.world_refinement_pending)
+	local totals = self.world_equipment_totals or { attack = 0, defense = 0 }
+	set_text(self, self.world_equipment_status, string.format("Equipado · ATQ +%d  DEF +%d", totals.attack or 0, totals.defense or 0))
+end
+
+local function refresh_stage_panel(self)
+	local stage = self.world_stage_state
+	if not stage then
+		set_text(self, self.world_stage_label, "Estágio: aguardando servidor")
+		set_text(self, self.world_stage_button.text, "Ritual de estágio")
+		set_skill_button_enabled(self.world_stage_button, false)
+		return
+	end
+	set_text(self, self.world_stage_label, string.format("%s · Nível %d/400", stage.stage or "Mortal", stage.stage_level or 1))
+	local next_stages = { "Arch", "Celestial", "Sub-Celestial" }
+	local next_stage = next_stages[(stage.stage_id or 0) + 1]
+	if not next_stage then
+		set_text(self, self.world_stage_button.text, "Estágio máximo")
+		set_skill_button_enabled(self.world_stage_button, false)
+		return
+	end
+	local has_material = false
+	for _, item in pairs(self.world_inventory or {}) do
+		if item.client_item_id == stage.required_material_client_item_id and (item.stack_count or 0) > 0 then
+			has_material = true
+			break
+		end
+	end
+	set_text(self, self.world_stage_button.text, "Ritual para " .. next_stage)
+	set_skill_button_enabled(self.world_stage_button, stage.stage_level == 400 and has_material and not self.world_stage_pending)
+end
+
+local function set_world_detail_panel(self, panel)
+	self.world_detail_panel = panel
+	for name, nodes in pairs(self.world_panel_nodes or {}) do
+		local visible = self.screen == "world" and name == panel
+		for _, node in ipairs(nodes) do gui.set_enabled(node, visible) end
+	end
+	local tabs = {
+		{ name = "attributes", button = self.world_attribute_toggle_button, label = "Atributos" },
+		{ name = "inventory", button = self.world_inventory_toggle_button, label = "Inventário" },
+		{ name = "skills", button = self.world_skills_toggle_button, label = "Habilidades" },
+	}
+	for _, tab in ipairs(tabs) do
+		if tab.button then
+			set_text(self, tab.button.text, panel == tab.name and "Fechar" or tab.label)
+		end
+	end
+	if panel == "inventory" then refresh_inventory_panel(self) end
+	if panel == "skills" then refresh_skill_panel(self) end
+end
+
+local function toggle_world_detail_panel(self, panel)
+	local target = self.world_detail_panel == panel and nil or panel
+	if target then
+		set_mount_panel_open(self, false)
+		set_trade_panel_open(self, false)
+		set_shop_panel_open(self, false)
+	end
+	set_world_detail_panel(self, target)
+end
+
+local function select_inventory_slot(self, slot)
+	local item = self.world_inventory and self.world_inventory[slot]
+	if not item then
+		set_status(self, "Esse espaço do inventário está vazio.", COLOR_GOLD)
+		return
+	end
+	self.world_inventory_selected_slot = slot
+	self.world_inventory_page = math.floor(slot / INVENTORY_PAGE_SIZE)
+	refresh_inventory_panel(self)
+	refresh_trade_panel(self)
+	refresh_player_shop_panel(self)
+end
+
+local function request_mount_action(self, action)
+	local mount = self.world_mounts and self.world_mounts[self.world_mount_selected_index or 1]
+	local item_action = action == "incubate" or action == "feed" or action == "evolve"
+	if action ~= "list" and not mount then
+		set_status(self, "O servidor ainda não informou uma montaria.", COLOR_GOLD)
+		return
+	end
+	local inventory_slot = item_action and self.world_inventory_selected_slot or nil
+	if item_action and (inventory_slot == nil or not (self.world_inventory or {})[inventory_slot]) then
+		set_status(self, "Selecione no inventário o material ou a ração.", COLOR_GOLD)
+		return
+	end
+	self.world_mount_pending = true
+	refresh_mount_panel(self)
+	msg.post("/local_connection#connection", "world_mount_action", {
+		action = action,
+		mount_id = mount and mount.id or nil,
+		inventory_slot = inventory_slot,
+	})
+end
+
+local function handle_button(self, action)
+	if action == "login" then
+		send_login(self)
+	elseif action == "register_open" then
+		open_registration(self)
+	elseif action == "register_confirm" then
+		send_registration(self)
+	elseif action == "register_back" then
+		self.values.password = ""
+		self.values.password_confirm = ""
+		self.values.pin = ""
+		set_screen(self, "login")
+		set_active_field(self, "account")
+		set_status(self, "Entre com a sua conta Caracatoa local.")
+	elseif action == "pin_submit" then
+		send_pin(self)
+	elseif action == "create_open" then
+		for slot = 1, 4 do
+			if self.roster[slot] and self.roster[slot].name == "" then
+				show_create_screen(self, slot - 1)
+				return
+			end
+		end
+		set_status(self, "Os quatro espaços de personagem já estão ocupados.", COLOR_GOLD)
+	elseif action == "create_confirm" then
+		send_create(self)
+	elseif action == "back_login" then
+		msg.post("/local_connection#connection", "ui_cancel_session")
+		clear_value(self, "password")
+		clear_value(self, "pin")
+		set_screen(self, "login")
+		set_status(self, "Servidor local Caracatoa em 127.0.0.1:8289.")
+	elseif action == "back_roster" then
+		msg.post("/camera#preview_camera", "selection_overview")
+		for _, url in ipairs({ "/transknight#avatar_animation", "/foema#avatar_animation", "/beastmaster#avatar_animation", "/huntress#avatar_animation" }) do
+			msg.post(url, "creator_overview")
+		end
+		set_screen(self, "roster")
+		set_status(self, "Selecione um espaço ou crie uma personagem.")
+	elseif action == "logout" then
+		msg.post("/local_connection#connection", "ui_cancel_session")
+		self.values.password = ""
+		self.values.pin = ""
+		self.values.character_name = ""
+		set_screen(self, "login")
+		set_status(self, "Desconectado do servidor Caracatoa local.")
+	elseif action == "attributes_toggle" then
+		toggle_world_detail_panel(self, "attributes")
+	elseif action == "inventory_toggle" then
+		toggle_world_detail_panel(self, "inventory")
+	elseif action == "skills_toggle" then
+		toggle_world_detail_panel(self, "skills")
+	elseif action == "mount_toggle" then
+		if not self.mount_panel_open then
+			set_world_detail_panel(self, nil)
+			set_trade_panel_open(self, false)
+			set_shop_panel_open(self, false)
+		end
+		set_mount_panel_open(self, not self.mount_panel_open)
+		if self.mount_panel_open then
+			if not self.world_mount_snapshot_ready then request_mount_action(self, "list") else refresh_mount_panel(self) end
+		end
+	elseif action == "mount_close" then
+		set_mount_panel_open(self, false)
+	elseif action == "trade_toggle" then
+		if not self.trade_panel_open then
+			set_world_detail_panel(self, nil)
+			set_mount_panel_open(self, false)
+			set_shop_panel_open(self, false)
+		end
+		set_trade_panel_open(self, not self.trade_panel_open)
+		if self.trade_panel_open then set_active_field(self, "trade_target") end
+	elseif action == "trade_close" then
+		set_trade_panel_open(self, false)
+	elseif action == "trade_invite" then
+		request_trade_action(self, "invite")
+	elseif action == "trade_accept" then
+		request_trade_action(self, "accept")
+	elseif action == "trade_decline" then
+		request_trade_action(self, "decline")
+	elseif action == "trade_offer_item" then
+		request_trade_action(self, "offer", true)
+	elseif action == "trade_offer_gold" then
+		request_trade_action(self, "offer", false)
+	elseif action == "trade_ready" then
+		request_trade_action(self, "ready")
+	elseif action == "trade_cancel" then
+		request_trade_action(self, "cancel")
+	elseif action == "shop_toggle" then
+		if not self.shop_panel_open then
+			set_world_detail_panel(self, nil)
+			set_mount_panel_open(self, false)
+			set_trade_panel_open(self, false)
+		end
+		set_shop_panel_open(self, not self.shop_panel_open)
+		if self.shop_panel_open then
+			set_active_field(self, "shop_price")
+			request_player_shop_action(self, "list")
+		end
+	elseif action == "shop_close" then
+		set_shop_panel_open(self, false)
+	elseif action == "shop_market" then
+		request_player_shop_action(self, "list")
+	elseif action == "shop_mine" then
+		request_player_shop_action(self, "mine")
+	elseif action == "shop_create" then
+		request_player_shop_action(self, "create")
+	elseif action == "shop_buy" then
+		request_player_shop_action(self, "buy")
+	elseif action == "shop_cancel" then
+		request_player_shop_action(self, "cancel")
+	elseif action == "shop_refresh" then
+		local view = self.world_shop_state and self.world_shop_state.view == "mine" and "mine" or "list"
+		request_player_shop_action(self, view)
+	elseif action == "mount_previous" or action == "mount_next" then
+		local count = #(self.world_mounts or {})
+		if count > 1 then
+			local delta = action == "mount_next" and 1 or -1
+			self.world_mount_selected_index = ((self.world_mount_selected_index - 1 + delta) % count) + 1
+			refresh_mount_panel(self)
+		end
+	elseif action == "mount_refresh" then
+		request_mount_action(self, "list")
+	elseif action == "mount_incubate" then
+		request_mount_action(self, "incubate")
+	elseif action == "mount_feed" then
+		request_mount_action(self, "feed")
+	elseif action == "mount_evolve" then
+		request_mount_action(self, "evolve")
+	elseif action == "mount_select" then
+		request_mount_action(self, "select")
+	elseif action == "mount_ride" then
+		local mount = self.world_mounts and self.world_mounts[self.world_mount_selected_index or 1]
+		request_mount_action(self, mount and mount.riding and "dismount" or "ride")
+	elseif action == "skill_cast_primary" or action == "skill_cast_secondary" or action == "skill_cast_tertiary" then
+		local slot = action == "skill_cast_primary" and 1 or action == "skill_cast_secondary" and 2 or 3
+		cast_skill_slot(self, slot)
+	elseif action == "skill_learn_primary" or action == "skill_learn_secondary" or action == "skill_learn_tertiary" then
+		local slot = action == "skill_learn_primary" and 1 or action == "skill_learn_secondary" and 2 or 3
+		local skill_id = self.world_skill_slot_ids and self.world_skill_slot_ids[slot]
+		if skill_id then msg.post("/local_connection#connection", "world_skill_learn", { skill_id = skill_id }) end
+	elseif action == "attribute_str" then
+		msg.post("/local_connection#connection", "world_attribute_allocate", { attribute_id = 0 })
+	elseif action == "attribute_int" then
+		msg.post("/local_connection#connection", "world_attribute_allocate", { attribute_id = 1 })
+	elseif action == "attribute_dex" then
+		msg.post("/local_connection#connection", "world_attribute_allocate", { attribute_id = 2 })
+	elseif action == "attribute_con" then
+		msg.post("/local_connection#connection", "world_attribute_allocate", { attribute_id = 3 })
+	elseif action == "inventory_prev" then
+		self.world_inventory_page = math.max(0, (self.world_inventory_page or 0) - 1)
+		refresh_inventory_panel(self)
+	elseif action == "inventory_next" then
+		self.world_inventory_page = math.min(math.ceil(INVENTORY_SLOT_COUNT / INVENTORY_PAGE_SIZE) - 1, (self.world_inventory_page or 0) + 1)
+		refresh_inventory_panel(self)
+	elseif action:sub(1, 15) == "inventory_slot_" then
+		select_inventory_slot(self, tonumber(action:sub(16)))
+	elseif action == "equipment_toggle" then
+		local slot = self.world_inventory_selected_slot
+		local item = slot ~= nil and self.world_inventory and self.world_inventory[slot]
+		local definition = item and CaracatoaItems.by_id[item.client_item_id]
+		if definition and definition.equipment_slot >= 0 then
+			msg.post("/local_connection#connection", "world_equipment_toggle", {
+				equipment_slot = definition.equipment_slot,
+				inventory_slot = slot,
+			})
+		else
+			set_status(self, "Selecione uma peça equipável do inventário.", COLOR_GOLD)
+		end
+	elseif action == "refine_selected" or action == "refine_selected_divine" then
+		local slot = self.world_inventory_selected_slot
+		local item = slot ~= nil and self.world_inventory and self.world_inventory[slot]
+		local itemization = slot ~= nil and self.world_itemization_details and self.world_itemization_details[slot]
+		local definition = item and CaracatoaItems.by_id[item.client_item_id]
+		if definition and definition.equipment_slot >= 0 and itemization then
+			self.world_refinement_pending = true
+			refresh_inventory_panel(self)
+			msg.post("/local_connection#connection", "world_refine_item", {
+				inventory_slot = slot,
+				use_divine_dust = action == "refine_selected_divine",
+			})
+		else
+			set_status(self, "Selecione um equipamento itemizado para refinar.", COLOR_GOLD)
+		end
+	elseif action == "stage_ritual" then
+		if not self.world_stage_pending then
+			self.world_stage_pending = true
+			refresh_stage_panel(self)
+			msg.post("/local_connection#connection", "world_stage_ritual")
+		end
+	end
+end
+
+local function handle_mouse_click(self, action)
+	for _, field in ipairs(self.fields) do
+		if field.screen == self.screen and field_is_available(self, field) and hit_rect_contains(field.hit_rect, action.x, action.y) then
+			set_active_field(self, field.name)
+			return true
+		end
+	end
+	for _, button in ipairs(self.buttons) do
+		if button.screen == self.screen and button_is_available(self, button) and hit_rect_contains(button.hit_rect, action.x, action.y) then
+			if button.action:sub(1, 5) == "slot_" then
+				send_slot_entry(self, tonumber(button.action:sub(6)) - 1)
+			elseif button.action:sub(1, 6) == "class_" then
+				select_creator_class(self, tonumber(button.action:sub(7)))
+				set_status(self, "Classe selecionada: " .. CLASS_NAMES[self.selected_class + 1] .. ".")
+			elseif button.action:sub(1, 13) == "shop_listing_" then
+				self.world_shop_selected_index = tonumber(button.action:sub(14)) or 1
+				refresh_player_shop_panel(self)
+			else
+				handle_button(self, button.action)
+			end
+			return true
+		end
+	end
+	return true
+end
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	self.html5_preview = sys.get_sys_info().system_name == "HTML5"
+	self.screen_nodes = { login = {}, register = {}, pin = {}, roster = {}, create = {}, world = {} }
+	self.fields = {}
+	self.buttons = {}
+	self.class_buttons = {}
+	self.world_skill_learned = {}
+	self.world_skill_points_value = 0
+	self.world_defense_remaining = 0
+	self.world_defense_bonus = 0
+	self.world_experience = 0
+	self.world_equipment_ready = false
+	self.world_equipment = {}
+	self.world_equipment_totals = { attack = 0, defense = 0 }
+	self.world_inventory = {}
+	self.world_itemization_details = {}
+	self.world_inventory_page = 0
+	self.world_inventory_selected_slot = nil
+	self.world_inventory_ready = false
+	self.world_mounts = {}
+	self.world_mount_selected_index = 1
+	self.world_mount_snapshot_ready = false
+	self.world_mount_pending = false
+	self.world_mount_status_result = nil
+	self.world_stage_state = nil
+	self.world_stage_pending = false
+	self.world_refinement_pending = false
+	self.mount_panel_open = false
+	self.trade_panel_open = false
+	self.shop_panel_open = false
+	self.world_trade_state = nil
+	self.world_trade_pending = false
+	self.world_trade_local_message = nil
+	self.world_shop_state = nil
+	self.world_shop_pending = false
+	self.world_shop_local_message = nil
+	self.world_shop_selected_index = 1
+	self.world_shop_receipt = nil
+	self.values = { account = "", password = "", password_confirm = "", pin = "", character_name = "", trade_target = "", trade_gold = "", shop_price = "" }
+	self.roster = {
+		{ name = "", class_id = 0, level = 0 },
+		{ name = "", class_id = 0, level = 0 },
+		{ name = "", class_id = 0, level = 0 },
+		{ name = "", class_id = 0, level = 0 },
+	}
+
+	add_entry_art(self, "login")
+	add_panel(self, "login", "Entrar", "Acesso ao mundo local")
+	add_text(self, "login", 128, 552, "Entrar", COLOR_TEXT, false, 1.18)
+	add_text(self, "login", 128, 521, "Acesso ao mundo local", COLOR_LOGIN_HINT, false, 0.88)
+
+
+	add_field(self, "login", "account", "", 270, 0, 430, 330)
+	add_field(self, "login", "password", "", 270, 0, 362, 330)
+	add_button(self, "login", "login", "Entrar", 270, 277, 236, 52)
+	add_button(self, "login", "register_open", "Criar conta", 270, 215, 236, 52)
+	add_logo(self, "login", 930, 520, 380, 285, 0.16)
+	add_text(self, "login", 930, 344, "AS CINZAS DE KERSEF", COLOR_TEXT, true, 0.95)
+	add_text(self, "login", 930, 311, "Ainda ha luz entre as ruinas.", COLOR_MUTED, true, 0.82)
+
+	add_entry_art(self, "register")
+	add_framed_panel(self, "register", 320, 360, 520, 650)
+
+
+	add_text(self, "register", 320, 536, "Criar conta", COLOR_TEXT, true, 1.28)
+
+
+	add_field(self, "register", "account", "", 320, 0, 466, 360)
+	add_field(self, "register", "password", "", 320, 0, 402, 360)
+	add_field(self, "register", "password_confirm", "", 320, 0, 338, 360)
+	add_field(self, "register", "pin", "", 320, 0, 274, 360)
+	add_button(self, "register", "register_confirm", "Criar conta", 320, 210, 282, 56)
+	add_button(self, "register", "register_back", "Voltar ao login", 320, 150, 282, 56)
+
+	add_panel(self, "pin", "Confirmar acesso", "Senha numérica da conta")
+	add_field(self, "pin", "pin", "Senha numérica (4 a 6 dígitos)", 270, 470, 435, 360)
+	add_button(self, "pin", "pin_submit", "Confirmar", 270, 330, 210, 48)
+	add_button(self, "pin", "back_login", "Voltar", 270, 260, 160, 42)
+
+	add_panel(self, "roster", "Personagens", "Escolha um espaço para entrar")
+	self.roster_buttons = {}
+	for slot = 1, 4 do
+		local y = 485 - (slot - 1) * 72
+		local button = add_button(self, "roster", "slot_" .. slot, "Espaço " .. slot .. " — vazio", 270, y, 380, 54)
+		self.roster_buttons[slot] = button
+	end
+	add_button(self, "roster", "create_open", "Criar personagem", 270, 185, 220, 46)
+	add_button(self, "roster", "back_login", "Voltar", 270, 125, 160, 42)
+
+	add_framed_panel(self, "create", 1000, 360, 550, 680)
+	add_text(self, "create", 750, 650, "CARACATOA", COLOR_GOLD, false, 1.35)
+	add_text(self, "create", 750, 620, "Escolha seu legado", COLOR_TEXT, false, 1.08)
+	add_text(self, "create", 750, 592, "Quatro caminhos. Uma jornada em Kersef.", COLOR_MUTED, false, 0.9)
+	for class_id, class_name in ipairs(CLASS_NAMES) do
+		local center = 792 + (class_id - 1) * 138
+		local button = add_button(self, "create", "class_" .. (class_id - 1), class_name, center, 550, 132, 44)
+		set_text_scale(self, button.text, CLASS_BUTTON_TEXT_SCALE)
+		button.class_id = class_id - 1
+		self.class_buttons[#self.class_buttons + 1] = button
+	end
+	self.creator_class_title = add_text(self, "create", 750, 508, "Classe", COLOR_GOLD, false, 0.82)
+	self.creator_class_subtitle = add_text(self, "create", 750, 485, "Título", COLOR_MUTED, false, 0.66)
+	self.creator_attributes = add_text(self, "create", 750, 455, "ATRIBUTOS INICIAIS", COLOR_TEXT, false, 0.68)
+	self.creator_strengths = add_text(self, "create", 750, 430, "FORÇAS", COLOR_TEXT, false, 0.64)
+	self.creator_weaknesses = add_text(self, "create", 750, 405, "LIMITES", COLOR_MUTED, false, 0.64)
+	add_field(self, "create", "character_name", "Nome do personagem", 1000, 370, 338, 440)
+	self.creator_story_title = add_text(self, "create", 750, 300, "História", COLOR_GOLD, false, 0.84)
+	self.creator_story_line1 = add_text(self, "create", 750, 273, "", COLOR_TEXT, false, 0.72)
+	self.creator_story_line2 = add_text(self, "create", 750, 248, "", COLOR_TEXT, false, 0.72)
+	self.creator_visual = add_text(self, "create", 750, 222, "", COLOR_MUTED, false, 0.66)
+	add_text(self, "create", 750, 188, "Atributos iniciais variam por classe.", COLOR_MUTED, false, 0.68)
+	add_text(self, "create", 750, 168, "Os próximos pontos podem ser distribuídos livremente.", COLOR_MUTED, false, 0.68)
+	add_button(self, "create", "create_confirm", "Criar personagem", 1000, 105, 250, 42)
+	add_button(self, "create", "back_roster", "Voltar aos espaços", 1000, 55, 250, 38)
+	refresh_creator_details(self)
+
+	add_metal_frame(self, "world", 240, 640, 460, 130, 14, 0.09, COLOR_PANEL, true)
+	self.world_name = add_text(self, "world", 50, 681, "Aguardando personagem", COLOR_GOLD, false, 0.70)
+	self.world_details = add_text(self, "world", 50, 656, "Conectando ao mundo local", COLOR_MUTED, false, 0.62)
+	self.world_hp_frame = add_pill(self, "world", 240, 630, 420, 18, COLOR_XP_FRAME, 0.1)
+	self.world_hp_track = add_pill(self, "world", 240, 630, 412, 13, COLOR_XP_TRACK, 0.12)
+	self.world_hp_fill = add_pill(self, "world", 240, 630, 406, 8, COLOR_HP_FILL, 0.14)
+	set_pill_width(self.world_hp_fill, 0)
+	add_text(self, "world", 52, 630, "HP", COLOR_TEXT, false, 0.58, 0.2)
+	self.world_hp_value = add_text(self, "world", 440, 630, "— / —", COLOR_TEXT, true, 0.58, 0.2)
+	self.world_mp_frame = add_pill(self, "world", 240, 603, 420, 18, COLOR_XP_FRAME, 0.1)
+	self.world_mp_track = add_pill(self, "world", 240, 603, 412, 13, COLOR_XP_TRACK, 0.12)
+	self.world_mp_fill = add_pill(self, "world", 240, 603, 406, 8, COLOR_MP_FILL, 0.14)
+	set_pill_width(self.world_mp_fill, 0)
+	add_text(self, "world", 52, 603, "MP", COLOR_TEXT, false, 0.58, 0.2)
+	self.world_mp_value = add_text(self, "world", 440, 603, "— / —", COLOR_TEXT, true, 0.58, 0.2)
+	self.world_xp_frame = add_pill(self, "world", 640, 28, 760, 24, COLOR_XP_FRAME, 0.1)
+	self.world_xp_track = add_pill(self, "world", 640, 28, 750, 14, COLOR_XP_TRACK, 0.12)
+	self.world_xp_fill = add_pill(self, "world", 640, 28, 740, 8, COLOR_XP_FILL, 0.14)
+	set_pill_width(self.world_xp_fill, 0)
+	self.world_xp_label = add_text(self, "world", 640, 50, "EXP aguardando servidor", COLOR_GOLD, true, 0.76)
+	add_metal_frame(self, "world", 1020, 640, 420, 130, 14, 0.09, COLOR_PANEL, true)
+	add_text(self, "world", 830, 681, "COMBATE", COLOR_GOLD, false, 0.72)
+	self.world_target = add_text(self, "world", 830, 655, "Alvo: nenhum", COLOR_TEXT, false, 0.62)
+	self.world_target_frame = add_pill(self, "world", 1020, 630, 360, 18, COLOR_XP_FRAME, 0.1)
+	self.world_target_track = add_pill(self, "world", 1020, 630, 352, 13, COLOR_XP_TRACK, 0.12)
+	self.world_target_fill = add_pill(self, "world", 1020, 630, 346, 8, COLOR_TARGET_FILL, 0.14)
+	set_pill_width(self.world_target_fill, 0)
+	self.world_resources = add_text(self, "world", 1020, 630, "HP — / —", COLOR_TEXT, true, 0.58, 0.2)
+	add_world_combat_feedback(self)
+	self.world_skill_status = add_text(self, "world", 830, 604, "Habilidade pronta", COLOR_MUTED, false, 0.60)
+
+
+	add_metal_frame(self, "world", 640, 92, 372, 64, 12, 0.09, COLOR_PANEL, true)
+	self.world_skill_cast_buttons = {
+		add_button(self, "world", "skill_cast_primary", "1 · —", 520, 92, 112, 42),
+		add_button(self, "world", "skill_cast_secondary", "2 · —", 640, 92, 112, 42),
+		add_button(self, "world", "skill_cast_tertiary", "3 · —", 760, 92, 112, 42),
+	}
+	for _, button in ipairs(self.world_skill_cast_buttons) do set_text_scale(self, button.text, 0.54) end
+	local skills_panel_first_node = #self.screen_nodes.world + 1
+	local skills_panel_first_button = #self.buttons + 1
+	local skills_panel_first_field = #self.fields + 1
+	add_metal_frame(self, "world", 1020, 425, 420, 270, 14, 0.09, COLOR_PANEL, true)
+	add_text(self, "world", 830, 522, "TRILHA DE HABILIDADES", COLOR_GOLD, false, 0.76)
+	self.world_skill_points = add_text(self, "world", 830, 490, "Pontos de habilidade: aguardando servidor", COLOR_MUTED, false, 0.62)
+	self.world_skill_status_nodes = {
+		add_text(self, "world", 830, 450, "Habilidade da classe", COLOR_TEXT, false, 0.54),
+		add_text(self, "world", 830, 406, "Próxima habilidade", COLOR_TEXT, false, 0.54),
+		add_text(self, "world", 830, 362, "Terceira habilidade", COLOR_TEXT, false, 0.54),
+	}
+	self.world_skill_learn_buttons = {
+		add_button(self, "world", "skill_learn_primary", "Aprender", 1160, 450, 104, 32),
+		add_button(self, "world", "skill_learn_secondary", "Aprender", 1160, 406, 104, 32),
+		add_button(self, "world", "skill_learn_tertiary", "Aprender", 1160, 362, 104, 32),
+	}
+	self.world_skill_tree_status = add_text(self, "world", 830, 313, "Servidor valida nível, pontos e pré-requisitos.", COLOR_MUTED, false, 0.54)
+	capture_world_panel(self, "skills", skills_panel_first_node, skills_panel_first_button, skills_panel_first_field)
+	local attributes_panel_first_node = #self.screen_nodes.world + 1
+	local attributes_panel_first_button = #self.buttons + 1
+	local attributes_panel_first_field = #self.fields + 1
+	add_metal_frame(self, "world", 270, 410, 460, 196, 14, 0.09, COLOR_PANEL, true)
+	add_text(self, "world", 70, 484, "FICHA DE ATRIBUTOS", COLOR_GOLD, false, 0.78)
+	self.world_attribute_stats = add_text(self, "world", 70, 451, "STR 10  |  INT 10  |  DEX 10  |  CON 10", COLOR_TEXT, false, 0.70)
+	self.world_attribute_points = add_text(self, "world", 70, 420, "Pontos disponíveis: aguardando servidor", COLOR_MUTED, false, 0.62)
+	self.world_attribute_status = add_text(self, "world", 70, 390, "Distribua pontos confirmados pelo servidor.", COLOR_MUTED, false, 0.58)
+	add_button(self, "world", "attribute_str", "+ STR", 105, 346, 90, 36)
+	add_button(self, "world", "attribute_int", "+ INT", 215, 346, 90, 36)
+	add_button(self, "world", "attribute_dex", "+ DEX", 325, 346, 90, 36)
+	add_button(self, "world", "attribute_con", "+ CON", 435, 346, 90, 36)
+	capture_world_panel(self, "attributes", attributes_panel_first_node, attributes_panel_first_button, attributes_panel_first_field)
+	local inventory_panel_first_node = #self.screen_nodes.world + 1
+	local inventory_panel_first_button = #self.buttons + 1
+	local inventory_panel_first_field = #self.fields + 1
+	add_metal_frame(self, "world", 1040, 334, 430, 450, 14, 0.09, COLOR_PANEL, true)
+	add_text(self, "world", 1040, 535, "EQUIPAMENTO E MOCHILA", COLOR_GOLD, true, 0.76)
+	add_accent_line(self, "world", 1040, 516, 360, 1.4, COLOR_FRAME_BRONZE, 0.13)
+	self.world_inventory_rows = {}
+	local inventory_grid_width = INVENTORY_GRID_COLUMNS * INVENTORY_CELL_WIDTH + (INVENTORY_GRID_COLUMNS - 1) * INVENTORY_GRID_GAP_X
+	local inventory_grid_left = 1040 - inventory_grid_width / 2
+	for index = 1, INVENTORY_PAGE_SIZE do
+		local row = math.floor((index - 1) / INVENTORY_GRID_COLUMNS)
+		local column = (index - 1) % INVENTORY_GRID_COLUMNS
+		local slot = index - 1
+		local x = inventory_grid_left + column * (INVENTORY_CELL_WIDTH + INVENTORY_GRID_GAP_X) + INVENTORY_CELL_WIDTH / 2
+		local y = 480 - row * (INVENTORY_CELL_HEIGHT + INVENTORY_GRID_GAP_Y)
+		local button = add_button(self, "world", "inventory_slot_" .. slot, "", x, y, INVENTORY_CELL_WIDTH, INVENTORY_CELL_HEIGHT)
+		button.hit_rect.width = INVENTORY_CELL_WIDTH
+		button.hit_rect.height = INVENTORY_CELL_HEIGHT
+		set_text_scale(self, button.text, 0.44)
+		self.world_inventory_rows[index] = button
+	end
+	self.world_inventory_prev_button = add_button(self, "world", "inventory_prev", "‹", 948, 258, 44, 26)
+	self.world_inventory_page_label = add_text(self, "world", 1040, 258, "01–20 / 60", COLOR_MUTED, true, 0.60)
+	self.world_inventory_next_button = add_button(self, "world", "inventory_next", "›", 1132, 258, 44, 26)
+	for _, button in ipairs({ self.world_inventory_prev_button, self.world_inventory_next_button }) do
+		button.hit_rect.width = 44
+		button.hit_rect.height = 26
+	end
+	self.world_equipment_status = add_text(self, "world", 1040, 225, "Equipado · ATQ +0  DEF +0", COLOR_MUTED, true, 0.54)
+	self.world_itemization_rarity = add_text(self, "world", 1040, 205, "Selecione um item para ver raridade.", COLOR_GOLD, true, 0.46)
+	self.world_itemization_stats = add_text(self, "world", 1040, 186, "", COLOR_TEXT, true, 0.48)
+	self.world_itemization_affixes = add_text(self, "world", 1040, 167, "Atributos rolados aparecem aqui.", COLOR_MUTED, true, 0.46)
+	self.world_equipment_toggle_button = add_button(self, "world", "equipment_toggle", "Selecione um equipamento", 1040, 140, 380, 26)
+	set_text_scale(self, self.world_equipment_toggle_button.text, 0.52)
+	set_skill_button_enabled(self.world_equipment_toggle_button, false)
+	self.world_refinement_button = add_button(self, "world", "refine_selected", "Refinar", 940, 122, 180, 24)
+	self.world_divine_refinement_button = add_button(self, "world", "refine_selected_divine", "Poeira Divina", 1140, 122, 180, 24)
+	for _, button in ipairs({ self.world_refinement_button, self.world_divine_refinement_button }) do
+		button.hit_rect.width = 180
+		button.hit_rect.height = 24
+	end
+	set_text_scale(self, self.world_refinement_button.text, 0.40)
+	set_text_scale(self, self.world_divine_refinement_button.text, 0.40)
+	set_skill_button_enabled(self.world_refinement_button, false)
+	set_skill_button_enabled(self.world_divine_refinement_button, false)
+	capture_world_panel(self, "inventory", inventory_panel_first_node, inventory_panel_first_button, inventory_panel_first_field)
+	self.world_detail_panel = nil
+	set_world_detail_panel(self, nil)
+	self.world_attribute_toggle_button = add_button(self, "world", "attributes_toggle", "Atributos", 70, 92, 104, 32)
+	self.world_inventory_toggle_button = add_button(self, "world", "inventory_toggle", "Inventário", 190, 92, 104, 32)
+	self.world_skills_toggle_button = add_button(self, "world", "skills_toggle", "Habilidades", 310, 92, 104, 32)
+	self.world_stage_label = add_text(self, "world", 270, 151, "Estágio: aguardando servidor", COLOR_GOLD, true, 0.62)
+	self.world_stage_button = add_button(self, "world", "stage_ritual", "Ritual de estágio", 270, 124, 190, 28)
+	set_skill_button_enabled(self.world_stage_button, false)
+	self.mount_panel_toggle_button = add_button(self, "world", "mount_toggle", "Montarias", 878, 92, 100, 32)
+	self.mount_panel_nodes = {}
+	local mount_panel_first_node = #self.screen_nodes.world + 1
+	local mount_panel_first_button = #self.buttons + 1
+	local mount_panel_first_field = #self.fields + 1
+	add_metal_frame(self, "world", 1000, 360, 490, 500, 18, 0.42, COLOR_PANEL, true)
+	add_gothic_crest(self, "world", 1000, 604, 0.47)
+	add_text(self, "world", 1000, 603, "COMPÊNDIO DE MONTARIAS", COLOR_GOLD, true, 1.04, 0.60)
+	self.world_mount_close_button = add_button(self, "world", "mount_close", "Fechar", 1204, 605, 72, 27, 0.54)
+	self.world_mount_previous_button = add_button(self, "world", "mount_previous", "‹", 803, 548, 48, 32, 0.54)
+	self.world_mount_next_button = add_button(self, "world", "mount_next", "›", 1197, 548, 48, 32, 0.54)
+	self.world_mount_name = add_text(self, "world", 1000, 550, "Aguardando servidor local", COLOR_TEXT, true, 1.02, 0.62)
+	add_accent_line(self, "world", 1000, 530, 430, 1.5, COLOR_FRAME_GOLD, 0.58)
+	self.world_mount_stage = add_text(self, "world", 1000, 511, "Estágio  ·  nível  ·  experiência", COLOR_GOLD, true, nil, 0.62)
+	self.world_mount_requirement = add_text(self, "world", 1000, 481, "Nível requerido: aguardando", COLOR_MUTED, true, nil, 0.62)
+	self.world_mount_hunger = add_text(self, "world", 1000, 451, "Fome  — / —", COLOR_TEXT, true, nil, 0.62)
+	self.world_mount_vitality = add_text(self, "world", 1000, 421, "Vida  — / —", COLOR_TEXT, true, nil, 0.62)
+	self.world_mount_bonuses = add_text(self, "world", 1000, 388, "Bônus recebidos do servidor", COLOR_GOLD, true, 0.78, 0.62)
+	self.world_mount_wait = add_text(self, "world", 1000, 354, "Incubação e tempo de alimentação", COLOR_MUTED, true, 0.78, 0.62)
+	add_accent_line(self, "world", 1000, 328, 430, 1.2, COLOR_FRAME_BRONZE, 0.58)
+	self.world_mount_status = add_text(self, "world", 1000, 306, "Estado autoritativo do servidor Caracatoa.", COLOR_TEXT, true, 0.78, 0.62)
+	self.world_mount_incubate_button = add_button(self, "world", "mount_incubate", "Incubar", 830, 255, 145, 36, 0.54)
+	self.world_mount_feed_button = add_button(self, "world", "mount_feed", "Alimentar", 1000, 255, 145, 36, 0.54)
+	self.world_mount_evolve_button = add_button(self, "world", "mount_evolve", "Evoluir", 1170, 255, 145, 36, 0.54)
+	self.world_mount_select_button = add_button(self, "world", "mount_select", "Selecionar", 830, 200, 145, 36, 0.54)
+	self.world_mount_ride_button = add_button(self, "world", "mount_ride", "Montar", 1000, 200, 145, 36, 0.54)
+	self.world_mount_refresh_button = add_button(self, "world", "mount_refresh", "Atualizar", 1170, 200, 145, 36, 0.54)
+	self.world_mount_material = add_text(self, "world", 1000, 148, "Material no slot selecionado: nenhum", COLOR_MUTED, true, 0.78, 0.62)
+	capture_world_panel(self, "mount", mount_panel_first_node, mount_panel_first_button, mount_panel_first_field)
+	self.mount_panel_nodes = self.world_panel_nodes.mount
+	set_mount_panel_open(self, false)
+
+	self.trade_panel_toggle_button = add_button(self, "world", "trade_toggle", "Troca", 986, 92, 100, 32)
+	self.trade_panel_nodes = {}
+	local trade_panel_first_node = #self.screen_nodes.world + 1
+	local trade_panel_first_button = #self.buttons + 1
+	local trade_panel_first_field = #self.fields + 1
+	add_metal_frame(self, "world", 1000, 360, 530, 540, 18, 0.42, COLOR_PANEL, true)
+	add_gothic_crest(self, "world", 1000, 613, 0.47)
+	add_text(self, "world", 1000, 602, "NEGOCIAÇÃO ENTRE VIAJANTES", COLOR_GOLD, true, 1.0, 0.60)
+	self.world_trade_close_button = add_button(self, "world", "trade_close", "Fechar", 1200, 603, 82, 28, 0.54)
+	self.world_trade_identity = add_text(self, "world", 1000, 565, "Nenhuma negociação ativa", COLOR_TEXT, true, 0.88, 0.62)
+	add_accent_line(self, "world", 1000, 548, 460, 1.4, COLOR_FRAME_GOLD, 0.58)
+	add_field(self, "world", "trade_target", "PERSONAGEM ALVO", 1000, 527, 503, 400, 0.62)
+	add_field(self, "world", "trade_gold", "GOLD OFERTADO", 900, 467, 443, 200, 0.62)
+	self.world_trade_selected_item = add_text(self, "world", 1000, 407, "Item selecionado: nenhum", COLOR_MUTED, true, 0.78, 0.62)
+	self.world_trade_self_offer = add_text(self, "world", 1000, 378, "SUA OFERTA  —", COLOR_GOLD, true, 0.72, 0.62)
+	self.world_trade_partner_offer = add_text(self, "world", 1000, 349, "OFERTA DO OUTRO LADO  —", COLOR_TEXT, true, 0.72, 0.62)
+	self.world_trade_status = add_text(self, "world", 1000, 315, "Convide alguém a até 5 passos para negociar.", COLOR_MUTED, true, 0.72, 0.62)
+	add_accent_line(self, "world", 1000, 290, 460, 1.2, COLOR_FRAME_BRONZE, 0.58)
+	self.world_trade_invite_button = add_button(self, "world", "trade_invite", "Convidar", 820, 255, 140, 36, 0.54)
+	self.world_trade_accept_button = add_button(self, "world", "trade_accept", "Aceitar", 980, 255, 120, 36, 0.54)
+	self.world_trade_decline_button = add_button(self, "world", "trade_decline", "Recusar", 1120, 255, 120, 36, 0.54)
+	self.world_trade_offer_item_button = add_button(self, "world", "trade_offer_item", "Item + gold", 870, 205, 170, 36, 0.54)
+	self.world_trade_offer_gold_button = add_button(self, "world", "trade_offer_gold", "Só gold", 1060, 205, 150, 36, 0.54)
+	self.world_trade_ready_button = add_button(self, "world", "trade_ready", "Confirmar", 900, 155, 140, 36, 0.54)
+	self.world_trade_cancel_button = add_button(self, "world", "trade_cancel", "Cancelar troca", 1080, 155, 160, 36, 0.54)
+	capture_world_panel(self, "trade", trade_panel_first_node, trade_panel_first_button, trade_panel_first_field)
+	self.trade_panel_nodes = self.world_panel_nodes.trade
+	set_trade_panel_open(self, false)
+
+	self.shop_panel_toggle_button = add_button(self, "world", "shop_toggle", "Feira", 1094, 92, 100, 32)
+	self.shop_panel_nodes = {}
+	local shop_panel_first_node = #self.screen_nodes.world + 1
+	local shop_panel_first_button = #self.buttons + 1
+	local shop_panel_first_field = #self.fields + 1
+	add_metal_frame(self, "world", 1000, 360, 530, 600, 18, 0.46, COLOR_PANEL, true)
+	add_gothic_crest(self, "world", 1000, 645, 0.50)
+	add_text(self, "world", 1000, 632, "FEIRA DO BASTIÃO", COLOR_GOLD, true, 1.04, 0.62)
+	self.world_shop_close_button = add_button(self, "world", "shop_close", "Fechar", 1208, 635, 82, 28, 0.56)
+	self.world_shop_market_button = add_button(self, "world", "shop_market", "Feira", 880, 589, 150, 34, 0.56)
+	self.world_shop_mine_button = add_button(self, "world", "shop_mine", "Meus anúncios", 1045, 589, 175, 34, 0.56)
+	self.world_shop_status = add_text(self, "world", 1000, 559, "Aguardando o servidor local.", COLOR_MUTED, true, 0.70, 0.64)
+	self.world_shop_receipt_text = add_text(self, "world", 1000, 539, "Mercado de jogadores · anúncios expiram em 7 dias", COLOR_GOLD, true, 0.66, 0.64)
+	add_accent_line(self, "world", 1000, 525, 458, 1.4, COLOR_FRAME_GOLD, 0.58)
+	self.world_shop_rows = {}
+	for row = 1, 8 do
+		self.world_shop_rows[row] = add_button(self, "world", "shop_listing_" .. row, "—", 1000, 498 - (row - 1) * 28, 450, 25, 0.56)
+	end
+	self.world_shop_selection = add_text(self, "world", 1000, 266, "Selecione um anúncio para ver os detalhes.", COLOR_TEXT, true, 0.72, 0.64)
+	self.world_shop_seller = add_text(self, "world", 1000, 245, "", COLOR_MUTED, true, 0.70, 0.64)
+	add_field(self, "world", "shop_price", "PREÇO DO ITEM", 1000, 218, 190, 220, 0.56)
+	self.world_shop_create_button = add_button(self, "world", "shop_create", "Anunciar item", 820, 132, 150, 34, 0.56)
+	self.world_shop_buy_button = add_button(self, "world", "shop_buy", "Comprar", 1000, 132, 150, 34, 0.56)
+	self.world_shop_cancel_button = add_button(self, "world", "shop_cancel", "Retirar", 1180, 132, 150, 34, 0.56)
+	self.world_shop_refresh_button = add_button(self, "world", "shop_refresh", "Atualizar anúncios", 1000, 82, 210, 34, 0.56)
+	capture_world_panel(self, "shop", shop_panel_first_node, shop_panel_first_button, shop_panel_first_field)
+	self.shop_panel_nodes = self.world_panel_nodes.shop
+	set_shop_panel_open(self, false)
+	self.world_logout_button = add_button(self, "world", "logout", "Sair", 1202, 92, 100, 32)
+	for _, button in ipairs({ self.world_attribute_toggle_button, self.world_inventory_toggle_button,
+		self.world_skills_toggle_button, self.mount_panel_toggle_button, self.trade_panel_toggle_button,
+		self.shop_panel_toggle_button, self.world_logout_button }) do
+		set_text_scale(self, button.text, 0.60)
+	end
+
+	self.status_node = gui.new_text_node(vmath.vector3(72, 42, 0.3), "Servidor local: iniciando...")
+	gui.set_font(self.status_node, "cinzel")
+	gui.set_pivot(self.status_node, gui.PIVOT_W)
+	gui.set_color(self.status_node, COLOR_LOGIN_LABEL)
+	self.status_shadow_node = gui.new_text_node(vmath.vector3(74, 40, 0.295), "Servidor local: iniciando...")
+	gui.set_font(self.status_shadow_node, "cinzel")
+	gui.set_pivot(self.status_shadow_node, gui.PIVOT_W)
+	gui.set_color(self.status_shadow_node, COLOR_TEXT_SHADOW)
+
+	set_screen(self, "login")
+	set_active_field(self, "account")
+end
+
+local function report_hud_registration_test(self, passed, phase)
+	local state = self.hud_registration_test
+	if not HUD_REGISTRATION_TEST_MODE or not state or state.reported then return end
+	state.reported = true
+	local prefix = HUD_ONBOARDING_TEST_MODE and "HUD_ONBOARDING_TEST_" or "HUD_REGISTRATION_TEST_"
+	msg.post("/local_connection#connection", "ui_hud_registration_test_result", {
+		passed = passed == true,
+		phase = phase or state.phase or "unknown",
+		prefix = prefix,
+	})
+end
+
+local function begin_hud_registration_test(self, message)
+	if not HUD_REGISTRATION_TEST_MODE then return end
+	local state = {
+		phase = "setup",
+		account_id = message.account_id,
+		password = message.password,
+		pin = message.pin,
+		character_name = message.character_name,
+		class_id = message.class_id,
+	}
+	self.hud_registration_test = state
+	if type(state.account_id) ~= "string" or type(state.password) ~= "string" or type(state.pin) ~= "string" then
+		report_hud_registration_test(self, false, "input")
+		return
+	end
+	if HUD_ONBOARDING_TEST_MODE and
+		(type(state.character_name) ~= "string" or not state.character_name:match("^[A-Za-z0-9_]+$") or
+		type(state.class_id) ~= "number" or state.class_id < 0 or state.class_id > 3 or state.class_id ~= math.floor(state.class_id)) then
+		report_hud_registration_test(self, false, "onboarding-input")
+		return
+	end
+	handle_mouse_click(self, { x = 270, y = 215 })
+	if self.screen ~= "register" then
+		report_hud_registration_test(self, false, "open-registration")
+		return
+	end
+	self.values.account = state.account_id
+	self.values.password = state.password
+	self.values.password_confirm = state.password
+	self.values.pin = state.pin
+	for _, name in ipairs({ "account", "password", "password_confirm", "pin" }) do
+		render_field(self, name)
+	end
+	state.phase = "register"
+	handle_mouse_click(self, { x = 320, y = 210 })
+	if not self.registration_pending then
+		report_hud_registration_test(self, false, "registration-validation")
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("camera_mode_changed") then
+		if type(message.name) == "string" and type(message.distance) == "number" then
+			set_status(self, string.format("Câmera %s · %.1f m", message.name, message.distance), COLOR_GOLD)
+		end
+	elseif message_id == hash("hud_registration_test_start") then
+		begin_hud_registration_test(self, message)
+	elseif message_id == hash("hud_input_test_start") then
+		handle_mouse_click(self, { x = 270, y = 215 })
+		local registration_opened = self.screen == "register"
+		handle_mouse_click(self, { x = 320, y = 210 })
+		local passed = registration_opened and self.screen == "register" and
+			self.status == "Digite um ID de 1 a 15 caracteres." and not self.registration_pending
+		msg.post("/local_connection#connection", "ui_hud_input_test_result", { passed = passed })
+	elseif message_id == hash("server_status") and message.text then
+		set_status(self, message.text)
+	elseif message_id == hash("account_registration_result") then
+		if message.success then
+			self.registration_pending = false
+			self.values.account = message.account_id or self.registration_account or ""
+			self.values.password = ""
+			self.values.password_confirm = ""
+			self.values.pin = ""
+			set_screen(self, "login")
+			set_active_field(self, "password")
+			set_status(self, "Conta criada. Entre com sua senha para continuar.", COLOR_GOLD)
+			local test = self.hud_registration_test
+			if HUD_REGISTRATION_TEST_MODE and test and test.phase == "register" then
+				test.phase = "login"
+				self.values.account = message.account_id or test.account_id
+				self.values.password = test.password
+				render_field(self, "account")
+				render_field(self, "password")
+				handle_mouse_click(self, { x = 270, y = 277 })
+				if not self.login_pending then report_hud_registration_test(self, false, "login-submit") end
+			end
+		else
+			self.registration_pending = false
+			set_screen(self, "register")
+			set_active_field(self, self.values.account and self.values.account ~= "" and "password" or "account")
+			set_status(self, message.text or "Não foi possível criar a conta local.", COLOR_GOLD)
+			if HUD_REGISTRATION_TEST_MODE then report_hud_registration_test(self, false, "registration-response") end
+		end
+	elseif message_id == hash("session_pin_required") then
+		self.login_pending = false
+		self.values.pin = ""
+		set_screen(self, "pin")
+		set_active_field(self, "pin")
+		set_status(self, "ID e senha aceitos. Informe o PIN da conta.")
+		local test = self.hud_registration_test
+		if HUD_REGISTRATION_TEST_MODE and test and test.phase == "login" then
+			test.phase = "pin"
+			self.values.pin = test.pin
+			render_field(self, "pin")
+			handle_mouse_click(self, { x = 270, y = 330 })
+			if self.status ~= "Validando a senha numérica no servidor local..." then
+				report_hud_registration_test(self, false, "pin-submit")
+			end
+		end
+	elseif message_id == hash("session_roster") then
+		self.login_pending = false
+		print("[Caracatoa HUD] roster recebido")
+		msg.post("/camera#preview_camera", "selection_overview")
+		for slot = 1, 4 do
+			local name = message["slot" .. slot .. "_name"] or ""
+			local class_id = message["slot" .. slot .. "_class"] or 0
+			local level = message["slot" .. slot .. "_level"] or 0
+			self.roster[slot] = { name = name, class_id = class_id, level = level }
+			local label = "Espaço " .. slot .. " - vazio"
+			if name ~= "" then
+				local class_name = CLASS_NAMES[class_id + 1] or "Classe " .. tostring(class_id)
+				label = string.format("%s  |  Nv. %d  |  %s", name, level, class_name)
+			end
+			set_text(self, self.roster_buttons[slot].text, label)
+		end
+		self.values.password = ""
+		self.values.pin = ""
+		set_screen(self, "roster")
+		set_status(self, "Escolha uma personagem ou crie uma nova.")
+		local test = self.hud_registration_test
+		if HUD_REGISTRATION_TEST_MODE and test and test.phase == "pin" then
+			local empty_roster = true
+			for slot = 1, 4 do
+				if self.roster[slot].name ~= "" then empty_roster = false; break end
+			end
+			if not empty_roster then
+				report_hud_registration_test(self, false, "empty-roster")
+			elseif HUD_ONBOARDING_TEST_MODE then
+				test.phase = "create"
+				handle_mouse_click(self, { x = 270, y = 185 })
+				if self.screen ~= "create" then
+					report_hud_registration_test(self, false, "open-character-creation")
+				else
+					self.values.character_name = test.character_name
+					render_field(self, "character_name")
+					handle_mouse_click(self, { x = 792 + test.class_id * 138, y = 550 })
+					if self.selected_class ~= test.class_id then
+						report_hud_registration_test(self, false, "select-class")
+					else
+						handle_mouse_click(self, { x = 1000, y = 105 })
+						if self.status ~= "Criando personagem no servidor local..." then
+							report_hud_registration_test(self, false, "create-character-submit")
+						end
+					end
+				end
+			else
+				report_hud_registration_test(self, true, "roster")
+			end
+		elseif HUD_ONBOARDING_TEST_MODE and test and test.phase == "await-created-roster" then
+			local character = self.roster[1]
+			if not character or character.name ~= test.character_name or character.class_id ~= test.class_id then
+				report_hud_registration_test(self, false, "created-roster")
+			else
+				test.phase = "entry"
+				handle_mouse_click(self, { x = 270, y = 485 })
+				if self.status ~= "Entrando no mundo local..." then
+					report_hud_registration_test(self, false, "character-entry-submit")
+				end
+			end
+		end
+	elseif message_id == hash("character_created") then
+		set_status(self, "Personagem criada. Atualizando espaços...")
+		local test = self.hud_registration_test
+		if HUD_ONBOARDING_TEST_MODE and test and test.phase == "create" then
+			test.phase = "await-created-roster"
+		end
+	elseif message_id == hash("world_ready") then
+		msg.post("/transknight#movement", "world_bootstrap", {
+			class_id = message.class_id,
+			mob_index = message.mob_index,
+			x = message.x,
+			y = message.y,
+		})
+		set_text(self, self.world_name, string.format("Nv. %d  ·  %s  ·  %s", message.level or 1, message.name or "Personagem", CLASS_NAMES[(message.class_id or 0) + 1] or "Classe Caracatoa"))
+		set_text(self, self.world_details, string.format("Mundo local  ·  (%d, %d)  ·  WASD", message.x or 0, message.y or 0))
+		self.world_character_name = message.name or "Personagem"
+		self.world_class = message.class_id or 0
+		self.world_level = message.level or 1
+		self.world_max_hp = nil
+		self.world_max_mp = nil
+		self.world_target_max_hp = nil
+		set_world_vitals(self, nil, nil, nil, nil)
+		set_text(self, self.world_target, "Alvo: nenhum")
+		set_world_target_health(self, nil, nil)
+		set_text(self, self.world_skill_status, self.world_class == 1 and "Habilidades arcanas da Foema" or "Habilidades ativas da classe")
+		self.world_skill_learned = {}
+		self.world_skill_points_value = 0
+		self.world_equipment_ready = false
+		self.world_equipment = {}
+		self.world_equipment_totals = { attack = 0, defense = 0 }
+		self.world_inventory = {}
+		self.world_itemization_details = {}
+		self.world_inventory_page = 0
+		self.world_inventory_selected_slot = nil
+		self.world_inventory_ready = false
+		self.world_mounts = {}
+		self.world_mount_selected_index = 1
+		self.world_mount_snapshot_ready = false
+		self.world_mount_pending = false
+		self.world_mount_status_result = nil
+		self.world_trade_state = nil
+		self.world_trade_pending = false
+		self.world_trade_local_message = nil
+		self.world_shop_state = nil
+		self.world_shop_pending = false
+		self.world_shop_local_message = nil
+		self.world_shop_selected_index = 1
+		self.world_shop_receipt = nil
+		self.world_detail_panel = nil
+		set_trade_panel_open(self, false)
+		set_mount_panel_open(self, false)
+		set_shop_panel_open(self, false)
+		set_text(self, self.world_equipment_status, "Equipado · ATQ +0  DEF +0")
+		set_skill_button_enabled(self.world_equipment_toggle_button, false)
+		set_text(self, self.world_attribute_stats, "STR —  |  INT —  |  DEX —  |  CON —")
+		set_text(self, self.world_attribute_points, "Pontos disponíveis: aguardando servidor")
+		set_text(self, self.world_attribute_status, "Distribua pontos confirmados pelo servidor.")
+		set_screen(self, "world")
+		set_world_detail_panel(self, nil)
+		set_world_experience(self, message.experience or 0, self.world_level)
+		refresh_skill_panel(self)
+		refresh_inventory_panel(self)
+		refresh_mount_panel(self)
+		refresh_trade_panel(self)
+		refresh_player_shop_panel(self)
+		set_status(self, "WASD mover · V câmera · scroll zoom")
+		local test = self.hud_registration_test
+		if HUD_ONBOARDING_TEST_MODE and test and test.phase == "entry" then
+			local passed = message.name == test.character_name and message.class_id == test.class_id
+			test.phase = passed and "world" or "world-mismatch"
+			report_hud_registration_test(self, passed, "world")
+		end
+	elseif message_id == hash("world_inventory_reset") then
+		self.world_inventory = {}
+		self.world_itemization_details = {}
+		self.world_inventory_selected_slot = nil
+		self.world_inventory_ready = false
+		refresh_inventory_panel(self)
+		refresh_trade_panel(self)
+		refresh_player_shop_panel(self)
+	elseif message_id == hash("world_inventory_updated") then
+		local slot = message.slot
+		if type(slot) == "number" and slot >= 0 and slot < INVENTORY_SLOT_COUNT and slot == math.floor(slot) then
+			if (message.client_item_id or 0) == 0 then
+				self.world_inventory[slot] = nil
+				self.world_itemization_details[slot] = nil
+				if self.world_inventory_selected_slot == slot then self.world_inventory_selected_slot = nil end
+			else
+				self.world_itemization_details[slot] = nil
+				self.world_inventory[slot] = {
+					client_item_id = message.client_item_id,
+					stack_count = message.stack_count or 1,
+				}
+				if self.world_inventory_selected_slot == nil then
+					self.world_inventory_selected_slot = slot
+					self.world_inventory_page = math.floor(slot / INVENTORY_PAGE_SIZE)
+				end
+			end
+			refresh_inventory_panel(self)
+			refresh_mount_panel(self)
+			refresh_stage_panel(self)
+			refresh_trade_panel(self)
+			refresh_player_shop_panel(self)
+		end
+	elseif message_id == hash("world_itemization_updated") then
+		local slot = message.slot
+		if type(slot) == "number" and slot >= 0 and slot < INVENTORY_SLOT_COUNT and slot == math.floor(slot) then
+			self.world_itemization_details = self.world_itemization_details or {}
+			if message.status == 2 then
+				self.world_itemization_details[slot] = nil
+			else
+				local affixes = {}
+				for index = 1, math.min(4, message.affix_count or 0) do
+					affixes[#affixes + 1] = {
+						client_affix_id = message["affix_" .. index .. "_id"],
+						value = message["affix_" .. index .. "_value"],
+					}
+				end
+				self.world_itemization_details[slot] = {
+					rarity_id = message.rarity_id,
+					item_level = message.item_level,
+					base_stats = {
+						physical_damage = message.physical_damage,
+						magic_attack = message.magic_attack,
+						physical_defense = message.physical_defense,
+						max_hp = message.max_hp,
+						max_mp = message.max_mp,
+					},
+					refinement_level = message.refinement_level or 0,
+					affixes = affixes,
+				}
+			end
+			refresh_inventory_panel(self)
+		end
+	elseif message_id == hash("world_inventory_snapshot_complete") then
+		self.world_inventory_ready = true
+		if self.world_inventory_selected_slot == nil then
+			for slot = 0, INVENTORY_SLOT_COUNT - 1 do
+				if self.world_inventory[slot] then
+					self.world_inventory_selected_slot = slot
+					self.world_inventory_page = math.floor(slot / INVENTORY_PAGE_SIZE)
+					break
+				end
+			end
+		end
+		refresh_inventory_panel(self)
+		refresh_mount_panel(self)
+		refresh_stage_panel(self)
+		refresh_player_shop_panel(self)
+	elseif message_id == hash("world_position") then
+		set_text(self, self.world_details, string.format("Mundo local  ·  (%d, %d)  ·  WASD", message.x or 0, message.y or 0))
+	elseif message_id == hash("world_progression_updated") then
+		local previous_level = self.world_level or message.level or 1
+		local previous_experience = self.world_experience or message.experience or 0
+		self.world_level = message.level or previous_level
+		set_world_experience(self, message.experience, self.world_level)
+		local experience_gained = type(message.experience) == "number" and math.max(0, message.experience - previous_experience) or 0
+		if experience_gained > 0 then
+			show_world_combat_feedback(self, "+" .. CaracatoaProgression.format_count(experience_gained) .. " EXP", COLOR_COMBAT_EXPERIENCE)
+		end
+		refresh_skill_panel(self)
+		set_text(self, self.world_name, string.format("Nv. %d  ·  %s  ·  %s", self.world_level, self.world_character_name or "Personagem", CLASS_NAMES[(self.world_class or 0) + 1] or "Classe Caracatoa"))
+		set_text(self, self.world_details, string.format("Mundo local  ·  (%d, %d)  ·  WASD", message.x or 0, message.y or 0))
+		if self.world_level > previous_level then
+			set_status(self, string.format("Você alcançou o nível %d.", self.world_level), COLOR_GOLD)
+		elseif message.experience and message.experience > previous_experience then
+			set_status(self, string.format("+%s EXP", CaracatoaProgression.format_count(message.experience - previous_experience)), COLOR_GOLD)
+		end
+	elseif message_id == hash("world_target_updated") then
+		if message.entity_id then
+			self.world_target_max_hp = message.max_hp
+			set_text(self, self.world_target, string.format("%s  ·  #%04X", truncate_utf8(message.name or "Criatura", 24), message.entity_id))
+			set_world_target_health(self, message.current_hp, message.max_hp)
+		else
+			self.world_target_max_hp = nil
+			set_text(self, self.world_target, "Alvo: nenhum")
+			set_world_target_health(self, nil, nil)
+		end
+	elseif message_id == hash("world_resources_updated") then
+		set_world_vitals(self, message.current_hp, message.max_hp, message.current_mp, message.max_mp)
+	elseif message_id == hash("world_skill_pending") then
+		set_text(self, self.world_skill_status, "Conjurando " .. (message.skill_name or "habilidade") .. "...")
+		set_status(self, "Aguardando validação do servidor local.")
+	elseif message_id == hash("world_skill_result") then
+		set_world_vitals(self, message.current_hp, message.max_hp, message.current_mp, message.max_mp)
+		if message.target_hp then set_world_target_health(self, message.target_hp, self.world_target_max_hp) end
+		if message.effect_type == "heal" then
+			set_text(self, self.world_skill_status, string.format("%s: +%d HP", message.skill_name or "Cura", message.healed or 0))
+			if type(message.healed) == "number" and message.healed > 0 then
+				show_world_combat_feedback(self, "+" .. CaracatoaProgression.format_count(message.healed), COLOR_COMBAT_HEAL)
+			end
+		elseif message.effect_type == "defense" then
+			self.world_defense_remaining = (message.duration_ms or 0) / 1000
+			self.world_defense_bonus = message.defense_bonus or 0
+			self.world_defense_skill_name = message.skill_name or "Postura defensiva"
+			set_text(self, self.world_skill_status, string.format("%s: +%d DEF por %d s", self.world_defense_skill_name, self.world_defense_bonus, math.floor(self.world_defense_remaining)))
+		else
+			set_text(self, self.world_skill_status, string.format("%s: %d dano", message.skill_name or "Habilidade", message.damage or 0))
+			if type(message.damage) == "number" and message.damage > 0 then
+				show_world_combat_feedback(self, "-" .. CaracatoaProgression.format_count(message.damage), COLOR_COMBAT_DAMAGE)
+			end
+		end
+		set_status(self, (message.skill_name or "Habilidade") .. " confirmada pelo servidor.")
+	elseif message_id == hash("world_skill_rejected") then
+		set_text(self, self.world_skill_status, message.text or "Habilidade indisponível")
+		set_status(self, message.text or "O servidor recusou a habilidade.", COLOR_GOLD)
+	elseif message_id == hash("world_skill_state_updated") then
+		self.world_skill_learned = self.world_skill_learned or {}
+		for skill_id, _ in pairs(CaracatoaSkills.by_id) do
+			self.world_skill_learned[skill_id] = message["learned_" .. skill_id] == true
+		end
+		self.world_skill_points_value = message.skill_points or 0
+		refresh_skill_panel(self)
+		local changed_skill = CaracatoaSkills.by_id[message.skill_id]
+		local skill_name = changed_skill and changed_skill.name or "Habilidade"
+		if message.status == 1 then
+			set_status(self, skill_name .. " foi aprendida e salva.", COLOR_GOLD)
+		elseif message.status == 3 then
+			set_text(self, self.world_skill_tree_status, "Precisa de 1 ponto de habilidade")
+		elseif message.status == 4 then
+			set_text(self, self.world_skill_tree_status, "Requer nível 2")
+		elseif message.status == 5 then
+			local prerequisite_id = changed_skill and changed_skill.prerequisites[1]
+			local prerequisite = prerequisite_id and CaracatoaSkills.by_id[prerequisite_id]
+			set_text(self, self.world_skill_tree_status, prerequisite and ("Aprenda " .. prerequisite.name .. " primeiro") or "Pré-requisito não atendido")
+		elseif message.status == 6 then
+			local required_class = changed_skill and CLASS_NAMES[(changed_skill.class_id or 0) + 1] or "classe da habilidade"
+			set_text(self, self.world_skill_tree_status, "Requer classe " .. required_class)
+		elseif message.status == 7 then
+			set_text(self, self.world_skill_tree_status, "Habilidade indisponível neste catálogo")
+		else
+			set_text(self, self.world_skill_tree_status, "Servidor valida nível, pontos e pré-requisitos.")
+		end
+	elseif message_id == hash("world_skill_learning_pending") then
+		set_text(self, self.world_skill_tree_status, "Validando e salvando " .. (message.skill_name or "habilidade") .. "...")
+		set_status(self, "Aguardando confirmação do servidor local.")
+	elseif message_id == hash("world_skill_learning_rejected") then
+		set_text(self, self.world_skill_tree_status, message.text or "Aprendizado recusado")
+		set_status(self, message.text or "O servidor recusou o aprendizado.", COLOR_GOLD)
+	elseif message_id == hash("world_attributes_updated") then
+		set_world_vitals(self, message.current_hp, message.max_hp, message.current_mp, message.max_mp)
+		set_text(self, self.world_attribute_stats, string.format(
+			"STR %d  |  INT %d  |  DEX %d  |  CON %d",
+			message.str or 0, message.int or 0, message.dex or 0, message.con or 0))
+		set_text(self, self.world_attribute_points, string.format("Pontos disponíveis: %d", message.available_points or 0))
+		if message.status == 0 then
+			set_text(self, self.world_attribute_status, string.format("Aplicado. Dano %d  |  Defesa %d  |  HP máx. %d  |  MP máx. %d", message.damage or 0, message.defense or 0, message.max_hp or 0, message.max_mp or 0))
+			set_status(self, "Servidor confirmou e salvou o ponto de atributo.")
+		elseif message.status == 1 then
+			set_text(self, self.world_attribute_status, "Sem pontos livres. Ganhe um nível para receber mais.")
+		elseif message.status == 2 then
+			set_text(self, self.world_attribute_status, "Este atributo atingiu o limite do perfil atual.")
+		else
+			set_text(self, self.world_attribute_status, string.format("Dano %d  |  Defesa %d  |  HP máx. %d  |  MP máx. %d", message.damage or 0, message.defense or 0, message.max_hp or 0, message.max_mp or 0))
+		end
+	elseif message_id == hash("world_attribute_pending") then
+		set_text(self, self.world_attribute_status, "Aguardando validação e gravação do servidor...")
+	elseif message_id == hash("world_attribute_rejected") then
+		set_text(self, self.world_attribute_status, message.text or "A distribuição não foi aceita.")
+		set_status(self, message.text or "O servidor recusou a distribuição.", COLOR_GOLD)
+	elseif message_id == hash("world_stage_updated") then
+		self.world_stage_state = {
+			stage = message.stage,
+			stage_id = message.stage_id,
+			stage_level = message.stage_level,
+			total_level = message.total_level,
+			experience = message.experience,
+			available_attribute_points = message.available_attribute_points,
+			available_skill_points = message.available_skill_points,
+			required_material_client_item_id = message.required_material_client_item_id,
+			status = message.status,
+			reason = message.reason,
+		}
+		self.world_stage_pending = false
+		refresh_stage_panel(self)
+		if message.status == 1 then
+			set_status(self, string.format("Ritual concluído: %s · nível %d.", message.stage or "novo estágio", message.stage_level or 1), COLOR_GOLD)
+		elseif message.status == 2 then
+			local reason = ({ [1] = "O estágio requer nível 400.", [2] = "Falta o material do ritual.", [3] = "Este personagem já está no estágio máximo.", [4] = "O servidor não conseguiu salvar o estágio.", [5] = "Limite de pontos atingido.", [6] = "O pedido do ritual já foi usado." })[message.reason] or "O servidor recusou o ritual."
+			set_status(self, reason, COLOR_GOLD)
+		end
+	elseif message_id == hash("world_stage_pending") then
+		self.world_stage_pending = true
+		refresh_stage_panel(self)
+		set_status(self, "O altar está validando o ritual no servidor local.", COLOR_GOLD)
+	elseif message_id == hash("world_stage_rejected") then
+		self.world_stage_pending = false
+		refresh_stage_panel(self)
+		set_status(self, message.text or "O ritual não pôde ser enviado.", COLOR_GOLD)
+	elseif message_id == hash("world_refinement_updated") then
+		self.world_refinement_pending = false
+		refresh_inventory_panel(self)
+		local status = message.status
+		if status == 0 then
+			set_status(self, string.format("Refino concluído: +%d · chance %.2f%%.", message.new_level or 0, (message.chance_bps or 0) / 100), COLOR_GOLD)
+		elseif status == 1 then
+			set_status(self, string.format("Refino falhou. O item ficou em +%d.", message.new_level or 0), COLOR_GOLD)
+		elseif status == 3 then
+			set_status(self, "Este pedido de refino já havia sido processado.", COLOR_GOLD)
+		else
+			local reason = ({ [1] = "Slot vazio.", [2] = "O item não aceita refino.", [3] = "O nível do item supera o do personagem.", [4] = "O item já está em +15.", [5] = "Falta o catalisador.", [6] = "Falta a Poeira Divina.", [7] = "A Poeira Divina só pode ser usada a partir do alvo +10.", [8] = "A pilha do equipamento é inválida.", [9] = "O servidor não conseguiu salvar o refino.", [10] = "O identificador do pedido já foi usado." })[message.reason] or "O servidor recusou o refino."
+			set_status(self, reason, COLOR_GOLD)
+		end
+	elseif message_id == hash("world_refinement_pending") then
+		self.world_refinement_pending = true
+		refresh_inventory_panel(self)
+		set_status(self, "Aguardando o resultado do refino no servidor local.", COLOR_GOLD)
+	elseif message_id == hash("world_refinement_rejected") then
+		self.world_refinement_pending = false
+		refresh_inventory_panel(self)
+		set_status(self, message.text or "O refino não pôde ser enviado.", COLOR_GOLD)
+	elseif message_id == hash("world_mounts_updated") then
+		local decoded_ok, mount_state = pcall(json.decode, message.state_json or "")
+		if not decoded_ok or type(mount_state) ~= "table" or type(mount_state.mounts) ~= "table" then
+			self.world_mount_status_result = { status = 2, reason = 6 }
+		else
+			self.world_mount_snapshot_ready = true
+			self.world_mounts = mount_state.mounts
+			if message.completed then self.world_mount_pending = false end
+			self.world_mount_status_result = { status = mount_state.status, reason = mount_state.reason }
+			if #self.world_mounts == 0 then
+				self.world_mount_selected_index = 1
+			elseif not self.world_mounts[self.world_mount_selected_index or 1] then
+				self.world_mount_selected_index = 1
+				for index, mount in ipairs(self.world_mounts) do
+					if mount.active then self.world_mount_selected_index = index; break end
+				end
+			end
+		end
+		refresh_mount_panel(self)
+	elseif message_id == hash("world_mount_pending") then
+		self.world_mount_pending = true
+		set_text(self, self.world_mount_status, "Aguardando confirmação e gravação do servidor...")
+		refresh_mount_panel(self)
+	elseif message_id == hash("world_mount_rejected") then
+		self.world_mount_pending = false
+		self.world_mount_status_result = { status = 2, reason = 7 }
+		refresh_mount_panel(self)
+		set_status(self, message.text or "A ação da montaria foi recusada.", COLOR_GOLD)
+	elseif message_id == hash("world_trade_updated") then
+		local decoded_ok, trade_state = pcall(json.decode, message.state_json or "")
+		if not decoded_ok or type(trade_state) ~= "table" then
+			self.world_trade_local_message = "O estado de troca recebido está inválido."
+		else
+			self.world_trade_state = trade_state
+			self.world_trade_local_message = nil
+		end
+		self.world_trade_pending = false
+		refresh_trade_panel(self)
+		if decoded_ok and trade_state and trade_state.status == "committed" then
+			set_status(self, "Troca concluída e salva pelo servidor local.", COLOR_GOLD)
+		elseif decoded_ok and trade_state and trade_state.status == "invited" and trade_state.trade and trade_state.trade.incoming then
+			set_trade_panel_open(self, true)
+			set_status(self, "Você recebeu um convite de troca.", COLOR_GOLD)
+		end
+	elseif message_id == hash("world_trade_pending") then
+		self.world_trade_pending = true
+		self.world_trade_local_message = "Aguardando resposta do servidor local..."
+		refresh_trade_panel(self)
+	elseif message_id == hash("world_trade_rejected") then
+		self.world_trade_pending = false
+		self.world_trade_local_message = message.text or "A ação de troca foi recusada."
+		refresh_trade_panel(self)
+	elseif message_id == hash("world_shop_updated") then
+		local decoded_ok, shop_state = pcall(json.decode, message.state_json or "")
+		if not decoded_ok or type(shop_state) ~= "table" or type(shop_state.listings) ~= "table" then
+			self.world_shop_local_message = "O estado recebido da feira está inválido."
+		else
+			self.world_shop_state = shop_state
+			self.world_shop_local_message = shop_state.message
+			if shop_state.receipt then self.world_shop_receipt = shop_state.receipt end
+		end
+		self.world_shop_pending = false
+		refresh_player_shop_panel(self)
+		if decoded_ok and shop_state and shop_state.status == "ok" and shop_state.receipt then
+			local item = CaracatoaItems.by_id[shop_state.receipt.clientItemId]
+			set_status(self, string.format("Compra salva: %s por %s gold.", item and item.name or "item", tostring(shop_state.receipt.askingGold)), COLOR_GOLD)
+			request_player_shop_action(self, "list")
+		elseif decoded_ok and shop_state and shop_state.status == "ok" then
+			set_status(self, shop_state.message or "Feira atualizada pelo servidor.", COLOR_GOLD)
+		elseif decoded_ok and shop_state then
+			set_status(self, shop_state.message or "O servidor recusou a operação do mercado.", COLOR_GOLD)
+		end
+	elseif message_id == hash("world_shop_pending") then
+		self.world_shop_pending = true
+		self.world_shop_local_message = "Aguardando o servidor Caracatoa confirmar..."
+		refresh_player_shop_panel(self)
+	elseif message_id == hash("world_shop_rejected") then
+		self.world_shop_pending = false
+		self.world_shop_local_message = message.text or "A operação do mercado foi recusada."
+		refresh_player_shop_panel(self)
+		set_status(self, self.world_shop_local_message, COLOR_GOLD)
+	elseif message_id == hash("world_equipment_updated") then
+		if message.status == 1 then
+			set_text(self, self.world_equipment_status, "O servidor recusou a troca.")
+			refresh_inventory_panel(self)
+			set_status(self, "Equipamento não alterado.", COLOR_GOLD)
+		else
+			if message.status ~= 2 or message.snapshot_complete then
+				self.world_equipment_ready = true
+			end
+			if (message.client_item_id or 0) == 0 then
+				self.world_equipment[message.equipment_slot] = nil
+			else
+				self.world_equipment[message.equipment_slot] = {
+					inventory_slot = message.inventory_slot,
+					client_item_id = message.client_item_id,
+				}
+			end
+			self.world_equipment_totals = {
+				attack = message.total_attack_bonus or 0,
+				defense = message.total_defense_bonus or 0,
+			}
+			refresh_inventory_panel(self)
+			if message.status == 0 then set_status(self, "Equipamento confirmado e salvo pelo servidor.", COLOR_GOLD) end
+		end
+	elseif message_id == hash("world_equipment_pending") then
+		set_text(self, self.world_equipment_status, "Aguardando confirmação do servidor...")
+		set_skill_button_enabled(self.world_equipment_toggle_button, false)
+	elseif message_id == hash("world_equipment_rejected") then
+		set_text(self, self.world_equipment_status, message.text or "A troca de equipamento foi recusada.")
+		refresh_inventory_panel(self)
+	elseif message_id == hash("session_error") then
+		self.login_pending = false
+		local screen = message.screen or "login"
+		set_screen(self, screen)
+		set_status(self, message.text or "Não foi possível completar a sessão local.", COLOR_GOLD)
+		if HUD_REGISTRATION_TEST_MODE then report_hud_registration_test(self, false, "session-error") end
+	elseif message_id == hash("session_create_error") then
+		set_screen(self, "create")
+		set_status(self, message.text or "Não foi possível criar a personagem.", COLOR_GOLD)
+		if HUD_ONBOARDING_TEST_MODE then report_hud_registration_test(self, false, "character-create-rejected") end
+	end
+end
+
+function update(self, dt)
+	update_world_combat_feedback(self, dt)
+	if self.world_defense_remaining and self.world_defense_remaining > 0 then
+		self.world_defense_remaining = math.max(0, self.world_defense_remaining - dt)
+		if self.world_defense_remaining > 0 then
+			set_text(self, self.world_skill_status, string.format("%s ativo: +%d DEF · %d s", self.world_defense_skill_name or "Guarda", self.world_defense_bonus or 0, math.ceil(self.world_defense_remaining)))
+		else
+			set_text(self, self.world_skill_status, (self.world_defense_skill_name or "Guarda") .. " expirou")
+			self.world_defense_bonus = 0
+		end
+	end
+end
+
+function on_input(self, action_id, action)
+	if self.screen == "world" and action_id == hash("camera_mode_cycle") and action.pressed then
+		msg.post("/camera#preview_camera", "camera_mode_next")
+		return true
+	elseif self.screen == "world" and action_id == hash("camera_zoom_in") and action.value == 1 then
+		msg.post("/camera#preview_camera", "camera_zoom", { delta = -1 })
+		return true
+	elseif self.screen == "world" and action_id == hash("camera_zoom_out") and action.value == 1 then
+		msg.post("/camera#preview_camera", "camera_zoom", { delta = 1 })
+		return true
+	end
+	if action_id == hash("text") then
+		append_text(self, action.text)
+		return true
+	elseif action_id == hash("backspace") and action.pressed then
+		local name = self.active_field
+		if name then
+			local value = self.values[name] or ""
+			self.values[name] = value:sub(1, math.max(0, #value - 1))
+			render_field(self, name)
+			if name == "shop_price" then refresh_player_shop_panel(self) end
+		end
+		return true
+	elseif action_id == hash("tab") and action.pressed then
+		local available = {}
+		for _, field in ipairs(self.fields) do
+			local trade_field = field.name == "trade_target" or field.name == "trade_gold"
+			local shop_field = field.name == "shop_price"
+			if field.screen == self.screen and (not trade_field or self.trade_panel_open) and
+				(not shop_field or self.shop_panel_open) then available[#available + 1] = field.name end
+		end
+		if #available > 0 then
+			local next_index = 1
+			for index, name in ipairs(available) do
+				if name == self.active_field then next_index = index % #available + 1; break end
+			end
+			set_active_field(self, available[next_index])
+		end
+		return true
+	elseif action_id == hash("enter") and action.pressed then
+		submit_primary(self)
+		return true
+	elseif action.pressed and (action_id == hash("skill_slot_1") or action_id == hash("skill_slot_2") or action_id == hash("skill_slot_3")) then
+		if self.screen == "world" then
+			local slot = action_id == hash("skill_slot_1") and 1 or action_id == hash("skill_slot_2") and 2 or 3
+			cast_skill_slot(self, slot)
+			return true
+		end
+	elseif action_id == hash("escape") and action.pressed then
+		if self.screen == "pin" then handle_button(self, "back_login")
+		elseif self.screen == "register" then handle_button(self, "register_back")
+		elseif self.screen == "create" then handle_button(self, "back_roster")
+		elseif self.screen == "world" then handle_button(self, "logout") end
+		return true
+	elseif action_id == hash("click") then
+		-- A short click can deliver press and release together after HTML5 wakes
+		-- from its idle throttle. Dispatch once from the release phase, which has
+		-- the final pointer position, and avoid stale press/release state.
+		if action.released then return handle_mouse_click(self, action) end
+	end
+	return false
+end

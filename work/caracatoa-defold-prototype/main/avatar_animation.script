@@ -1,0 +1,74 @@
+local IDLE = hash("Idle_Loop")
+local WALK = hash("Walk_Loop")
+local ATTACK_TK = hash("Caracatoa_TK_Slash")
+local FOCUS_SCALE = 1.52
+
+local function play(self, animation)
+	if self.current_animation == animation then return end
+	self.current_animation = animation
+	model.play_anim("#model", animation, go.PLAYBACK_LOOP_FORWARD, { blend_duration = 0.18 })
+end
+
+local function reset_preview(self)
+	self.attack_sequence = self.attack_sequence + 1
+	self.attacking = false
+	self.locomotion = IDLE
+	go.set_position(self.home_position)
+	go.set_rotation(self.home_rotation)
+	play(self, IDLE)
+end
+
+local function perform_attack(self, animation)
+	self.attack_sequence = self.attack_sequence + 1
+	local sequence = self.attack_sequence
+	local attack_animation = animation or ATTACK_TK
+	self.attacking = true
+	self.current_animation = attack_animation
+	-- The skeleton performs the strike. Only the player owns the root transform
+	-- and its authoritative movement interpolation, including during combat.
+	model.play_anim("#model", attack_animation, go.PLAYBACK_ONCE_FORWARD,
+		{ blend_duration = 0.07 }, function(_, message_id)
+			if message_id ~= hash("model_animation_done") or sequence ~= self.attack_sequence then return end
+			self.attacking = false
+			play(self, self.locomotion)
+		end)
+end
+
+function init(self)
+	self.current_animation = nil
+	self.home_position = go.get_position()
+	self.home_rotation = go.get_rotation()
+	self.home_scale = go.get_scale()
+	self.attack_sequence = 0
+	self.attacking = false
+	self.locomotion = IDLE
+	play(self, IDLE)
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("creator_focus") then
+		reset_preview(self)
+		go.set_scale(message.selected and self.home_scale * FOCUS_SCALE or self.home_scale)
+	elseif message_id == hash("creator_overview") then
+		reset_preview(self)
+		go.set_scale(self.home_scale)
+	elseif message_id == hash("creator_attack") then
+		perform_attack(self, message.animation)
+	elseif message_id == hash("world_anchor_updated") then
+		if type(message.x) ~= "number" or type(message.y) ~= "number" or type(message.z) ~= "number" or type(message.yaw) ~= "number" then return end
+		self.home_position = vmath.vector3(message.x, message.y, message.z)
+		self.home_rotation = vmath.quat_rotation_y(math.rad(message.yaw))
+	elseif message_id == hash("combat_attack") then
+		perform_attack(self, message.animation)
+	elseif message_id == hash("set_avatar_animation") then
+		if message.animation == "Idle_Loop" then
+			self.locomotion = IDLE
+		elseif message.animation == "Walk_Loop" then
+			self.locomotion = WALK
+		else
+			return
+		end
+		-- Key release and movement acknowledgements must not cut off the strike.
+		if not self.attacking then play(self, self.locomotion) end
+	end
+end

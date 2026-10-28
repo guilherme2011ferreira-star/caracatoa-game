@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "scene": "Salão do Altar Caracatoa",
+  "style": "salão cerimonial original com arco de pedra, veludo, passadeira e trono",
+  "glbBytes": 1743220,
+  "materials": [
+    {
+      "name": "AltarStone",
+      "texture": "kersef-limestone.png"
+    },
+    {
+      "name": "AltarTrim",
+      "texture": "ivory-marble.png"
+    },
+    {
+      "name": "AltarDark",
+      "texture": "blue-slate.png"
+    },
+    {
+      "name": "AltarGold",
+      "texture": "etched-brass.png"
+    },
+    {
+      "name": "AltarCurtain",
+      "texture": "crimson-velvet.png"
+    },
+    {
+      "name": "AltarBlue",
+      "texture": "royal-velvet.png"
+    },
+    {
+      "name": "AltarFloor",
+      "texture": "marble-mosaic.png"
+    },
+    {
+      "name": "AltarGlass",
+      "texture": "sanctuary-glass.png"
+    },
+    {
+      "name": "AltarEmber",
+      "texture": "amber-lantern.png"
+    }
+  ],
+  "generation": "geometria própria determinística; texturas sintéticas já licenciadas no pacote Caracatoa"
+}

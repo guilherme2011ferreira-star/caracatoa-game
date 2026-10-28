@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Caracatoa — Servidor WYD local</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <main class="layout">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">SERVIDOR LOCAL WYD</p>
+          <h1>Caracatoa</h1>
+          <p class="subtitle">Administração local do servidor</p>
+        </div>
+        <span class="local-badge"
+          ><span aria-hidden="true"></span> Somente nesta máquina</span
+        >
+      </header>
+
+      <section id="login-view" class="auth-card" hidden>
+        <h2>Acessar o painel</h2>
+        <p>Entre com uma conta local de administrador ou moderador.</p>
+        <form id="login-form" class="form-grid">
+          <label class="field-label" for="login-id">ID</label>
+          <input
+            id="login-id"
+            name="id"
+            autocomplete="username"
+            required
+            maxlength="32"
+          />
+          <label class="field-label" for="login-password">Senha</label>
+          <input
+            id="login-password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            maxlength="128"
+          />
+          <div
+            id="login-message"
+            class="message"
+            role="status"
+            aria-live="polite"
+          ></div>
+          <button class="button button-primary" type="submit">Entrar</button>
+        </form>
+      </section>
+
+      <section id="app-view" hidden>
+        <div class="account-bar">
+          <span id="account-label"></span>
+          <button id="logout" class="button button-secondary" type="button">
+            Sair
+          </button>
+        </div>
+        <nav class="tabs" aria-label="Seções do painel">
+          <button id="tab-content" class="tab-button active" type="button">
+            Conteúdo
+          </button>
+          <button id="tab-moderation" class="tab-button" type="button">
+            Moderação
+          </button>
+          <button id="tab-staff" class="tab-button" type="button" hidden>
+            Contas e auditoria
+          </button>
+        </nav>
+
+        <section id="content-view">
+          <div class="notice" aria-label="Limite desta versão">
+            Alterações de catálogo entram no próximo ingresso no mundo. Use a
+            aba Moderação para controlar monstros que já estejam visíveis a
+            jogadores conectados.
+          </div>
+          <section class="workspace">
+            <aside class="catalog-panel">
+              <div class="section-heading">
+                <div>
+                  <h2>Catálogos</h2>
+                  <p>Conteúdo do servidor</p>
+                </div>
+                <button
+                  class="icon-button"
+                  id="reload"
+                  type="button"
+                  title="Atualizar"
+                  aria-label="Atualizar"
+                >
+                  ↻
+                </button>
+              </div>
+              <label class="field-label" for="catalog-kind">Categoria</label>
+              <select id="catalog-kind"></select>
+              <div id="entry-list" class="entry-list" aria-live="polite"></div>
+              <button
+                class="button button-secondary new-button"
+                id="new-entry"
+                type="button"
+              >
+                ＋ Novo registro
+              </button>
+            </aside>
+
+            <section class="editor-panel" aria-labelledby="editor-title">
+              <div class="section-heading editor-heading">
+                <div>
+                  <h2 id="editor-title">Editor</h2>
+                  <p id="editor-context">Escolha um catálogo para começar</p>
+                </div>
+                <span id="record-state" class="record-state"
+                  >Nenhum registro</span
+                >
+              </div>
+              <label class="field-label" for="entry-json">Registro JSON</label>
+              <textarea
+                id="entry-json"
+                spellcheck="false"
+                autocapitalize="off"
+                autocomplete="off"
+                placeholder="Selecione um registro ou crie um novo."
+              ></textarea>
+              <div
+                id="content-message"
+                class="message"
+                role="status"
+                aria-live="polite"
+              ></div>
+              <div class="editor-actions">
+                <button
+                  class="button button-danger"
+                  id="delete-entry"
+                  type="button"
+                  disabled
+                >
+                  Excluir
+                </button>
+                <div class="action-spacer"></div>
+                <button
+                  class="button button-secondary"
+                  id="discard"
+                  type="button"
+                >
+                  Descartar
+                </button>
+                <button
+                  class="button button-primary"
+                  id="save-entry"
+                  type="button"
+                >
+                  Salvar registro
+                </button>
+              </div>
+            </section>
+          </section>
+        </section>
+
+        <section id="staff-view" hidden>
+          <div class="staff-grid">
+            <section class="staff-panel">
+              <div class="section-heading">
+                <div>
+                  <h2>Contas locais</h2>
+                  <p>IDs para administrar este painel</p>
+                </div>
+              </div>
+              <form id="account-form" class="form-grid">
+                <label class="field-label" for="account-id">ID</label>
+                <input
+                  id="account-id"
+                  name="id"
+                  required
+                  maxlength="32"
+                  pattern="[a-z0-9][a-z0-9._-]{0,31}"
+                  autocomplete="off"
+                />
+                <label class="field-label" for="account-name">Nome</label>
+                <input
+                  id="account-name"
+                  name="displayName"
+                  required
+                  maxlength="80"
+                  autocomplete="off"
+                />
+                <label class="field-label" for="account-role">Papel</label>
+                <select id="account-role" name="role">
+                  <option value="moderator">Moderador</option>
+                  <option value="admin">Administrador</option>
+                </select>
+                <label class="field-label" for="account-new-password"
+                  >Senha inicial</label
+                >
+                <input
+                  id="account-new-password"
+                  name="password"
+                  type="password"
+                  required
+                  minlength="12"
+                  maxlength="128"
+                  autocomplete="new-password"
+                />
+                <div
+                  id="account-message"
+                  class="message"
+                  role="status"
+                  aria-live="polite"
+                ></div>
+                <button class="button button-primary" type="submit">
+                  Criar conta
+                </button>
+              </form>
+              <div
+                id="account-list"
+                class="account-list"
+                aria-live="polite"
+              ></div>
+            </section>
+            <section class="staff-panel">
+              <div class="section-heading">
+                <div>
+                  <h2>Contas de jogador</h2>
+                  <p>IDs de login do WYD 7.27</p>
+                </div>
+                <button
+                  id="reload-player-accounts"
+                  class="icon-button"
+                  type="button"
+                  title="Atualizar contas de jogador"
+                  aria-label="Atualizar contas de jogador"
+                >
+                  ↻
+                </button>
+              </div>
+              <p class="helper-text">
+                Senha: 8–11 caracteres ASCII. Token: 4–6 dígitos, conforme os
+                campos do cliente.
+              </p>
+              <form id="player-account-form" class="form-grid">
+                <label class="field-label" for="player-account-id"
+                  >ID de login</label
+                >
+                <input
+                  id="player-account-id"
+                  name="accountId"
+                  required
+                  maxlength="15"
+                  pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,14}"
+                  autocomplete="off"
+                />
+                <label class="field-label" for="player-account-password"
+                  >Senha inicial</label
+                >
+                <input
+                  id="player-account-password"
+                  name="password"
+                  type="password"
+                  required
+                  minlength="8"
+                  maxlength="11"
+                  pattern="[ -~]{8,11}"
+                  autocomplete="new-password"
+                />
+                <label class="field-label" for="player-account-token"
+                  >Token numérico</label
+                >
+                <input
+                  id="player-account-token"
+                  name="token"
+                  type="password"
+                  inputmode="numeric"
+                  required
+                  minlength="4"
+                  maxlength="6"
+                  pattern="[0-9]{4,6}"
+                  autocomplete="new-password"
+                />
+                <div
+                  id="player-account-message"
+                  class="message"
+                  role="status"
+                  aria-live="polite"
+                ></div>
+                <button class="button button-primary" type="submit">
+                  Criar conta de jogador
+                </button>
+              </form>
+              <div
+                id="player-account-list"
+                class="account-list"
+                aria-live="polite"
+              ></div>
+            </section>
+            <section class="staff-panel">
+              <div class="section-heading">
+                <div>
+                  <h2>Auditoria recente</h2>
+                  <p>Alterações feitas por contas do painel</p>
+                </div>
+                <button
+                  id="reload-audit"
+                  class="icon-button"
+                  type="button"
+                  title="Atualizar auditoria"
+                  aria-label="Atualizar auditoria"
+                >
+                  ↻
+                </button>
+              </div>
+              <div id="audit-list" class="audit-list" aria-live="polite"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="moderation-view" hidden>
+          <div class="notice" aria-label="Ações de moderação">
+            Estas ações afetam imediatamente as sessões ativas e ficam
+            registradas na auditoria. Só aparecem dados de jogo mantidos pelo
+            servidor local.
+          </div>
+          <section class="staff-panel moderation-panel">
+            <div class="section-heading">
+              <div>
+                <h2>Monstros no mundo</h2>
+                <p>Estado compartilhado das sessões ativas</p>
+              </div>
+              <button
+                id="reload-live-monsters"
+                class="icon-button"
+                type="button"
+                title="Atualizar monstros ativos"
+                aria-label="Atualizar monstros ativos"
+              >
+                ↻
+              </button>
+            </div>
+            <div
+              id="moderation-message"
+              class="message"
+              role="status"
+              aria-live="polite"
+            ></div>
+            <div
+              id="live-monster-list"
+              class="account-list"
+              aria-live="polite"
+            ></div>
+          </section>
+          <section class="staff-panel moderation-panel">
+            <div class="section-heading">
+              <div>
+                <h2>Jogadores online</h2>
+                <p>
+                  Suspender a conta encerra todas as sessões e impede novo login
+                </p>
+              </div>
+              <button
+                id="reload-live-players"
+                class="icon-button"
+                type="button"
+                title="Atualizar jogadores online"
+                aria-label="Atualizar jogadores online"
+              >
+                ↻
+              </button>
+            </div>
+            <div
+              id="player-moderation-message"
+              class="message"
+              role="status"
+              aria-live="polite"
+            ></div>
+            <div
+              id="live-player-list"
+              class="account-list"
+              aria-live="polite"
+            ></div>
+          </section>
+        </section>
+      </section>
+
+      <footer>
+        Dados e contas ficam no computador local. Uma nova classe cadastrada
+        ainda precisa de suporte correspondente no cliente e no protocolo.
+      </footer>
+    </main>
+  </body>
+</html>

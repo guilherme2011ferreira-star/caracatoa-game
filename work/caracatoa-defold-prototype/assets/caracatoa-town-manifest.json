@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "scene": "Praça de Valedourada",
+  "style": "fantasia medieval Caracatoa, alvenaria biselada, arcadas, torres redondas, telhas e mosaicos",
+  "glbBytes": 1600280,
+  "materials": [
+    {
+      "name": "TownStone",
+      "texture": "stone.png"
+    },
+    {
+      "name": "TownTrim",
+      "texture": "trim.png"
+    },
+    {
+      "name": "TownShadow",
+      "texture": "shadow.png"
+    },
+    {
+      "name": "TownPlaster",
+      "texture": "plaster.png"
+    },
+    {
+      "name": "TownTimber",
+      "texture": "timber.png"
+    },
+    {
+      "name": "TownRoofRed",
+      "texture": "roof-red.png"
+    },
+    {
+      "name": "TownRoofBlue",
+      "texture": "roof-blue.png"
+    },
+    {
+      "name": "TownGold",
+      "texture": "gold.png"
+    },
+    {
+      "name": "TownBanner",
+      "texture": "banner.png"
+    },
+    {
+      "name": "TownBlueBanner",
+      "texture": "blue-banner.png"
+    },
+    {
+      "name": "TownGlass",
+      "texture": "glass.png"
+    },
+    {
+      "name": "TownCobble",
+      "texture": "cobble.png"
+    },
+    {
+      "name": "TownGrass",
+      "texture": "grass.png"
+    },
+    {
+      "name": "TownWater",
+      "texture": "water.png"
+    },
+    {
+      "name": "TownLeaf",
+      "texture": "leaf.png"
+    },
+    {
+      "name": "TownTorch",
+      "texture": "torch.png"
+    }
+  ],
+  "generation": "determinística; toda geometria e textura pertence ao projeto Caracatoa"
+}

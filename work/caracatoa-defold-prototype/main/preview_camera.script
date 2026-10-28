@@ -1,0 +1,84 @@
+local MOVE_DURATION = 0.4
+local CREATOR_CAMERA_X = 0.6
+local CREATOR_CAMERA_Y = 3.1
+local CREATOR_CAMERA_Z = 6.2
+local CREATOR_CAMERA_PITCH = -0.115
+local WORLD_CAMERA_TARGET_Y = 1.0
+local WORLD_CAMERA_MIN_DISTANCE = 4.6
+local WORLD_CAMERA_MAX_DISTANCE = 16.0
+local WORLD_CAMERA_ZOOM_STEP = 0.9
+local WORLD_CAMERA_DURATION = 0.16
+local WORLD_CAMERA_MODES = {
+	{ name = "Próxima", distance = 6.2, pitch = -0.19 },
+	{ name = "Clássica", distance = 9.2, pitch = -0.30 },
+	{ name = "Ampla", distance = 13.4, pitch = -0.43 },
+}
+
+local function move_camera(self, target, rotation)
+	go.animate(".", "position", go.PLAYBACK_ONCE_FORWARD, target, go.EASING_OUTQUAD, MOVE_DURATION)
+	if rotation then
+		go.animate(".", "rotation", go.PLAYBACK_ONCE_FORWARD, rotation, go.EASING_OUTQUAD, MOVE_DURATION)
+	end
+end
+
+local function world_camera_mode(self)
+	return WORLD_CAMERA_MODES[self.world_camera_mode_index]
+end
+
+local function notify_world_camera(self)
+	local mode = world_camera_mode(self)
+	msg.post("/hud#gui", "camera_mode_changed", {
+		name = mode.name,
+		distance = self.world_camera_distance,
+	})
+end
+
+local function apply_world_camera(self)
+	if type(self.world_follow_x) ~= "number" or type(self.world_follow_z) ~= "number" then return end
+	local mode = world_camera_mode(self)
+	local camera_y = WORLD_CAMERA_TARGET_Y - math.tan(mode.pitch) * self.world_camera_distance
+	go.animate(".", "position", go.PLAYBACK_ONCE_FORWARD,
+		vmath.vector3(self.world_follow_x, camera_y, self.world_follow_z + self.world_camera_distance),
+		go.EASING_OUTQUAD, WORLD_CAMERA_DURATION)
+	go.animate(".", "rotation", go.PLAYBACK_ONCE_FORWARD,
+		vmath.quat_rotation_x(mode.pitch), go.EASING_OUTQUAD, WORLD_CAMERA_DURATION)
+end
+
+function init(self)
+	self.overview = go.get_position()
+	self.home_rotation = go.get_rotation()
+	self.world_camera_mode_index = 2
+	self.world_camera_distance = WORLD_CAMERA_MODES[self.world_camera_mode_index].distance
+	self.world_follow_x = nil
+	self.world_follow_z = nil
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("creator_lineup") then
+		move_camera(self,
+			vmath.vector3(CREATOR_CAMERA_X, CREATOR_CAMERA_Y, CREATOR_CAMERA_Z),
+			vmath.quat_rotation_x(CREATOR_CAMERA_PITCH))
+	elseif message_id == hash("altar_overview") then
+		move_camera(self, vmath.vector3(0, 7.4, 18.5), vmath.quat_rotation_x(-0.18))
+	elseif message_id == hash("world_follow") then
+		if type(message.x) ~= "number" or type(message.z) ~= "number" then return end
+		self.world_follow_x = message.x
+		self.world_follow_z = message.z
+		apply_world_camera(self)
+	elseif message_id == hash("camera_mode_next") then
+		self.world_camera_mode_index = self.world_camera_mode_index % #WORLD_CAMERA_MODES + 1
+		self.world_camera_distance = WORLD_CAMERA_MODES[self.world_camera_mode_index].distance
+		apply_world_camera(self)
+		notify_world_camera(self)
+	elseif message_id == hash("camera_zoom") then
+		if type(message.delta) ~= "number" or message.delta == 0 then return end
+		local distance = math.max(WORLD_CAMERA_MIN_DISTANCE,
+			math.min(WORLD_CAMERA_MAX_DISTANCE, self.world_camera_distance + message.delta * WORLD_CAMERA_ZOOM_STEP))
+		if distance == self.world_camera_distance then return end
+		self.world_camera_distance = distance
+		apply_world_camera(self)
+		notify_world_camera(self)
+	elseif message_id == hash("selection_overview") then
+		move_camera(self, self.overview, self.home_rotation)
+	end
+end

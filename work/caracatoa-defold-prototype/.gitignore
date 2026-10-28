@@ -1,0 +1,8 @@
+/build/
+/bundle/
+/build-skillcast-20261026/
+/build-attributes-20261026/
+/build-*/
+/.build-output-d/
+/screenshots/
+/log.txt

@@ -1,0 +1,51 @@
+mesh: "/assets/models/foema.glb"
+name: "caracatoa_foema"
+materials {
+  name: "blue"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/foema_blue.png"
+  }
+}
+materials {
+  name: "blueLight"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/foema_blueLight.png"
+  }
+}
+materials {
+  name: "darkSteel"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/foema_darkSteel.png"
+  }
+}
+materials {
+  name: "leather"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/foema_leather.png"
+  }
+}
+materials {
+  name: "skin"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/foema_skin.png"
+  }
+}
+materials {
+  name: "violet"
+  material: "/builtins/materials/model.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/models/palettes/foema_violet.png"
+  }
+}
+create_go_bones: false
